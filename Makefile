@@ -1,16 +1,28 @@
-OC=ocamlc
-OCOPT=-annot
-OCLIB=str.cma
-all: disambiguator filereader string_splitter binary
+OC=ocamlopt
+OCOPT=-annot -g
+OCLIB=str.cmxa
+all:  binary
 
-binary:
-	$(OC) $(OCOPT) $(OCLIB) disambiguator.cmo file_reader.cmo string_splitter.cmo
+test: filereader string_splitter slice
+	ocaml tests.ml
+
+binary: disambiguator filereader string_splitter slice
+
+	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx  main.ml -o mostly.cmx
 
 disambiguator:
 	$(OC) $(OCOPT) -c disambiguator.ml 
+	ocamlc $(OCOPT) -c disambiguator.ml
 
-filereader:
+filereader: slice
 	$(OC) $(OCOPT) -c file_reader.ml
+	ocamlc $(OCOPT) -c file_reader.ml
 
 string_splitter:
 	$(OC) $(OCOPT) -c string_splitter.ml 
+	ocamlc $(OCOPT) -c string_splitter.ml
+
+slice:
+	$(OC) $(OCOPT) -c slice.ml
+	ocamlc $(OCOPT) -c slice.ml
+
