@@ -8,7 +8,7 @@ test: filereader string_splitter slice
 
 binary: disambiguator filereader string_splitter slice
 
-	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx  main.ml -o mostly.cmx
+	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx  main.ml -o SCM
 
 disambiguator:
 	$(OC) $(OCOPT) -c disambiguator.ml 
