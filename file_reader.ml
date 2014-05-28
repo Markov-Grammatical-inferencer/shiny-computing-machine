@@ -1,16 +1,14 @@
 class filereader=
   object
     val mutable contents=[]
-    val mutable number=0
     method addline (x:string)=
       contents<-contents@[x];
-      number<-number+1
     method getlines =
       contents
     method reset_contents=
       contents<-[]
     method getnumber=
-      number
+      List.length contents
    end;;
 
 

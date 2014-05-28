@@ -44,7 +44,12 @@ object(self)
     let c=List.length i in
     List.nth i (c-1)
 
+  method search_for_potential_similar_words (threshold:float)=
+    (*TODO Write this function*)
+    ()
+
   method doeswordappearin (c:textual) (w:string)=
+    (*Returns whether or not a word appears in a specific context. *)
     let wc=(Hashtbl.find_all words w) in
     List.mem (Hashtbl.find context c) wc
   
