@@ -60,6 +60,7 @@ object(self)
     print_endline "These is the following words";
     List.iter (fun x->print_endline (Hashtbl.find reverse_words x)) c.follow;
     ()
+
   method generate_context (p:string list) (f:string list)=
     (*Generates a context by the list of words used.*)
     let p=List.map self#getwordcode p in
@@ -67,7 +68,6 @@ object(self)
     {prec=p;follow=c}
 
   method process_into_context (s:string list)=
-    print_endline "This is in process context";
     let v = (List.length s) in
     List.iter (fun x->ignore(self#addword x)) s;
     try
