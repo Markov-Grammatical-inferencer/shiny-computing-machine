@@ -6,15 +6,15 @@ all:  binary
 test: filereader string_splitter slice
 	ocaml tests.ml
 
-binary: disambiguator filereader string_splitter slice
+binary: disambiguator filereader string_splitter
 
 	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx  main.ml -o SCM
 
-disambiguator:
+disambiguator: slice
 	$(OC) $(OCOPT) -c disambiguator.ml 
 	ocamlc $(OCOPT) -c disambiguator.ml
 
-filereader: slice
+filereader:
 	$(OC) $(OCOPT) -c file_reader.ml
 	ocamlc $(OCOPT) -c file_reader.ml
 
@@ -26,3 +26,5 @@ slice:
 	$(OC) $(OCOPT) -c slice.ml
 	ocamlc $(OCOPT) -c slice.ml
 
+clean:
+	rm *.cmi *.cma *.cmx *.cmo

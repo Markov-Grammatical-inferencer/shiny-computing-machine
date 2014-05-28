@@ -44,7 +44,12 @@ object(self)
     let c=List.length i in
     List.nth i (c-1)
 
+  method search_for_potential_similar_words (threshold:float)=
+    (*TODO Write this function*)
+    ()
+
   method doeswordappearin (c:textual) (w:string)=
+    (*Returns whether or not a word appears in a specific context. *)
     let wc=(Hashtbl.find_all words w) in
     List.mem (Hashtbl.find context c) wc
   
@@ -60,6 +65,7 @@ object(self)
     print_endline "These is the following words";
     List.iter (fun x->print_endline (Hashtbl.find reverse_words x)) c.follow;
     ()
+
   method generate_context (p:string list) (f:string list)=
     (*Generates a context by the list of words used.*)
     let p=List.map self#getwordcode p in
@@ -67,7 +73,6 @@ object(self)
     {prec=p;follow=c}
 
   method process_into_context (s:string list)=
-    print_endline "This is in process context";
     let v = (List.length s) in
     List.iter (fun x->ignore(self#addword x)) s;
     try
