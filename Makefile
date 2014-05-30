@@ -27,4 +27,4 @@ slice:
 	ocamlc $(OCOPT) -c slice.ml
 
 clean:
-	rm *.cmi *.cma *.cmx *.cmo
+	rm *.cmi  *.cmx *.cmo
