@@ -58,26 +58,27 @@ object(self)
 			   IntSet.cardinal h in 
     let dc=getkeys words in (*Obtain the words in the thingies*)
    (* let counter=ref 0 in *)
-    let map1func=
+    let iter1func=
       (fun x->
-      let map2func=
-	(fun y->
-	if x<>y then
-	  begin
-	    let a=Hashtbl.find words x in 
-	    let b=Hashtbl.find words y in 
-	    let c=IntSet.inter a.ctx b.ctx in 
-	    let d=float_of_int (IntSet.cardinal c) in
-	    let e=float_of_int (minset a.ctx b.ctx) in 
-	    if (d/.e)>=threshold then 
-	      begin
-		let f=IntSet.union a.ctx b.ctx in 
-		Hashtbl.replace words x {id=a.id;ctx=f};
-		Hashtbl.replace words y {id=b.id;ctx=f};
-	      end
-	  end) in 	
-      List.iter map2func dc) in 
-    List.iter map1func dc;
+       	    let a=Hashtbl.find words x in 
+	    let iter2func=
+	      (fun y->
+	       if x<>y then
+		 begin
+		   let b=Hashtbl.find words y in 
+		   let c=IntSet.inter a.ctx b.ctx in 
+		   let d=float_of_int (IntSet.cardinal c) in
+		   let e=float_of_int (minset a.ctx b.ctx) in 
+		   if (d/.e)>=threshold then 
+		     begin
+		       let f=IntSet.union a.ctx b.ctx in 
+		       Hashtbl.replace words x {id=a.id;ctx=f};
+		       Hashtbl.replace words y {id=b.id;ctx=f};
+		     end
+		 end) in 	
+	    List.iter iter2func dc
+      ) in 
+    List.iter iter1func dc;
     ()
 
   method doeswordappearin (c:textual) (w:string)=
