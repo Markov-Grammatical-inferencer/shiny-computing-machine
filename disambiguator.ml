@@ -58,7 +58,8 @@ object(self)
     print_string "Number of unique contexts ";
     print_int (Hashtbl.length context);
     print_endline "";
-    print_int (Hashtbl.length words)
+    print_int (Hashtbl.length words);
+    print_endline ""
 
   method print_context (c:textual)=
     print_endline "These is the preceeding words";
