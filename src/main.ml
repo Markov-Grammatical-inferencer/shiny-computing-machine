@@ -10,5 +10,4 @@ let ()=
   i#print_info;
   i#search_for_potential_similar_words 0.5;
   print_endline "After contextual linking";
-  i#print_info;
-  ignore(read_line ());;
+  i#print_info;;
