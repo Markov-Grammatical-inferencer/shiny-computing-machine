@@ -1,5 +1,6 @@
 OC=ocamlopt
-OCOPT=-annot -g
+OCOPT=-annot -g -p
+OCC=-annot -g
 OCLIB=str.cmxa
 all: binary
 
@@ -13,19 +14,19 @@ binary: disambiguator filereader string_splitter
 
 disambiguator: slice
 	$(OC) $(OCOPT) -c disambiguator.ml 
-	ocamlc $(OCOPT) -c disambiguator.ml
+	ocamlc $(OCC) -c disambiguator.ml
 
 filereader:
 	$(OC) $(OCOPT) -c file_reader.ml
-	ocamlc $(OCOPT) -c file_reader.ml
+	ocamlc $(OCC) -c file_reader.ml
 
 string_splitter:
 	$(OC) $(OCOPT) -c string_splitter.ml 
-	ocamlc $(OCOPT) -c string_splitter.ml
+	ocamlc $(OCC) -c string_splitter.ml
 
 slice:
 	$(OC) $(OCOPT) -c slice.ml
-	ocamlc $(OCOPT) -c slice.ml
+	ocamlc $(OCC) -c slice.ml
 
 clean:
 	rm *.cmi  *.cmx *.cmo

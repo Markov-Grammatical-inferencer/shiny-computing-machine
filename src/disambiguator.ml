@@ -57,23 +57,27 @@ object(self)
 			 else 
 			   IntSet.cardinal h in 
     let dc=getkeys words in (*Obtain the words in the thingies*)
-    for i =0 to (List.length dc) do
-      for j=0 to (List.length dc) do
-	if i<>j then
+   (* let counter=ref 0 in *)
+    let map1func=
+      (fun x->
+      let map2func=
+	(fun y->
+	if x<>y then
 	  begin
-	    let a=Hashtbl.find words (List.nth dc i) in 
-	    let b=Hashtbl.find words (List.nth dc j) in 
+	    let a=Hashtbl.find words x in 
+	    let b=Hashtbl.find words y in 
 	    let c=IntSet.inter a.ctx b.ctx in 
-	    let d=float_of_int (IntSet.cardinal c) in 
-	    let e=float_of_int (minset a.ctx b.ctx) in
-	    if (d/.e)>=threshold then
+	    let d=float_of_int (IntSet.cardinal c) in
+	    let e=float_of_int (minset a.ctx b.ctx) in 
+	    if (d/.e)>=threshold then 
 	      begin
-		Hashtbl.replace words (List.nth dc i) {id=a.id;ctx=(IntSet.union a.ctx b.ctx)};
-		Hashtbl.replace words (List.nth dc j) {id=b.id;ctx=(IntSet.union a.ctx b.ctx)};
-	      end;
-	   end;
-      done
-    done;
+		let f=IntSet.union a.ctx b.ctx in 
+		Hashtbl.replace words x {id=a.id;ctx=f};
+		Hashtbl.replace words y {id=b.id;ctx=f};
+	      end
+	  end) in 	
+      List.iter map2func dc) in 
+    List.iter map1func dc;
     ()
 
   method doeswordappearin (c:textual) (w:string)=
@@ -84,8 +88,10 @@ object(self)
   method print_info=
     print_string "Number of unique contexts ";
     print_int (Hashtbl.length context);
-    print_endline "\\n This is the number of unique words known";
-    print_int (Hashtbl.length words)
+    print_endline "\n This is the number of unique words known ";
+    print_int (Hashtbl.length words);
+    print_endline"";
+    ()
 
   method print_context (c:textual)=
     print_endline "These are the preceeding words";
@@ -103,6 +109,9 @@ object(self)
   method process_into_context (s:string list)=
     let v = (List.length s) in
     List.iter (fun x->ignore(self#addword x)) s;
+    let err=(fun msg->      print_endline "this is broken";
+      print_endline msg;
+      List.iter print_endline s) in
     try
     if v>=3 then
       begin
@@ -122,6 +131,6 @@ object(self)
 	done
       end;
     with Failure msg->
-      print_endline "this is broken"
+      err msg
   end;;
 
