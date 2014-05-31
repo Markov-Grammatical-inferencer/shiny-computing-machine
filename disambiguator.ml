@@ -3,9 +3,10 @@ open Slice;;
 type textual={prec:int list;follow:int list};;
 class disambiguator=
 object(self)
+  (* words and reverse_words together implement a symbol table,  *)
+  val mutable words : (string,int) Hashtbl.t = Hashtbl.create 2
   val mutable reverse_words : (int,string) Hashtbl.t = Hashtbl.create 1
   val mutable context = Hashtbl.create 2 (* n-grams, with the word in the middle *)
-  val mutable words : (string,int) Hashtbl.t = Hashtbl.create 2
   val mutable lastword=0
   method addword (w:string) =
     if not (Hashtbl.mem words w)then
