@@ -4,9 +4,6 @@ module IntSet=Set.Make(struct
 			type t=int
 		      end);; 
 
-let setlength (a:IntSet.t)=
-  List.length (IntSet.elements a);;
-
 type textual={prec:int list;follow:int list};;
 type word={id:int;ctx:IntSet.t};;
 class disambiguator=
