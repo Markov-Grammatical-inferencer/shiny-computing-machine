@@ -28,8 +28,12 @@ let apply_camera_data : (float ref camera_data -> unit) = fun cd ->
     GlMat.translate ~x: (-.cd.xpos.contents) ~y: (-.cd.ypos.contents) ~z: (-.cd.zpos.contents) ();
     ();;
 
-let incr_i : (int ref -> int -> unit) = fun x a -> x.contents <- (+) x.contents a;;
-let incr_f : (float ref -> float -> unit) = fun x a -> x.contents <- (+.) x.contents a;;
+
+let clamp lo hi x = max lo (min x hi);;
+let inplace fn xref = xref.contents <- (fn xref.contents);;
+
+let incr_i x a = inplace ((+) a) x;;
+let incr_f x a = inplace ((+.) a) x;;
 
 let key_press_handler_generator : ((int ref * int ref) -> (key:int -> x:int -> y:int -> unit)) = fun input_tuple ->
     fun ~key ~x ~y ->
@@ -60,9 +64,10 @@ let camera_key_press_handler : ((float ref camera_data) -> (key:int -> x:int -> 
 
         if (key = Char.code 'i') then incr_f cd.udrot (1. *. rotate_delta);
         if (key = Char.code 'k') then incr_f cd.udrot (-1. *. rotate_delta);
+        inplace (clamp ((-.tau) /. 4.) (tau /. 4.)) cd.udrot;
         if (key = Char.code 'j') then incr_f cd.lrrot (1. *. rotate_delta);
         if (key = Char.code 'l') then incr_f cd.lrrot (-1. *. rotate_delta);
-        Printf.printf "%f,%f,%f,%f,%f\n%!" cd.xpos.contents cd.ypos.contents cd.zpos.contents cd.lrrot.contents cd.udrot.contents;
+        (* Printf.printf "%f,%f,%f,%f,%f\n%!" cd.xpos.contents cd.ypos.contents cd.zpos.contents cd.lrrot.contents cd.udrot.contents; *)
         ();;
 
 
