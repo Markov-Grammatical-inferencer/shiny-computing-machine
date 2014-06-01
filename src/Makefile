@@ -2,7 +2,10 @@ OC=ocamlopt
 OCOPT=-annot -g -p
 OCC=-annot -g
 OCLIB=str.cmxa
-all: binary
+OPENGL_DIR=-I +lablgl
+OPENGL_LIB=lablgl.cmxa lablglut.cmxa
+OPENGL_LIB_BYTECODE=lablgl.cma lablglut.cma
+all: binary glr_parser
 
 test: filereader string_splitter slice
 	ocaml tests.ml
@@ -27,6 +30,10 @@ string_splitter:
 slice:
 	$(OC) $(OCOPT) -c slice.ml
 	ocamlc $(OCC) -c slice.ml
+
+glr_parser:
+	$(OC) $(OCOPT) $(OPENGL_DIR) $(OPENGL_LIB) glr_parser.ml -o ../glr_parser
+#	ocamlc $(OCOPT) $(OPENGL_DIR) $(OPENGL_LIB_BYTECODE) glr_parser.ml
 
 clean:
 	rm *.cmi  *.cmx *.cmo
