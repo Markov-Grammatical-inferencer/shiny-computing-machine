@@ -5,18 +5,14 @@ Compute the probability of the appearence of a word given N adjacent words?
 
 (* GLR Parser *)
 
+open Scm_util;;
+
 type 'a tree = Node of ('a * ('a tree list));;
 
 (*
 #load "lablglut.cma";;
 #load "lablgl.cma";;
 *)
-
-(* let pi = 4.0 *. atan 1.0;; *)
-let tau = 2.0 *. 4.0 *. atan 1.0;;
-
-let deg_to_rad x = x *. tau /. 360.;;
-let rad_to_deg x = x /. tau *. 360.;;
 
 type 'a camera_data = { xpos : 'a; ypos : 'a; zpos : 'a; lrrot : 'a; udrot : 'a };;
 (* input is a thunk so that it can initialize with a ref without aliasing issues *)
@@ -27,13 +23,6 @@ let apply_camera_data : (float ref camera_data -> unit) = fun cd ->
     GlMat.rotate ~angle: (rad_to_deg cd.lrrot.contents) ~y: 1. ();
     GlMat.translate ~x: (-.cd.xpos.contents) ~y: (-.cd.ypos.contents) ~z: (-.cd.zpos.contents) ();
     ();;
-
-
-let clamp lo hi x = max lo (min x hi);;
-let inplace fn xref = xref.contents <- (fn xref.contents);;
-
-let incr_i x a = inplace ((+) a) x;;
-let incr_f x a = inplace ((+.) a) x;;
 
 let key_press_handler_generator : ((int ref * int ref) -> (key:int -> x:int -> y:int -> unit)) = fun input_tuple ->
     fun ~key ~x ~y ->
