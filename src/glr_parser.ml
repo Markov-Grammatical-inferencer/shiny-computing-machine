@@ -88,9 +88,9 @@ let show_parse_tree = fun tr ->
     cd.xpos := 2.5; cd.ypos := 0.5; cd.zpos := -1.;
     let module Imgmake = Image_maker(GlTexImage) in
     let str = "Hello, world!" in
-    (* this will be overwritten, but still needs to be called to get the size *)
-    let modifiable_img = Imgmake.image_of_string freemono_face draw_red str in
-    GlTexImage.fill_image modifiable_img Graphics.blue;
+    let (w, h, x, y) = Imgmake.get_size_and_pos freemono_face str in
+    let modifiable_img = GlTexImage.create w h in
+    GlTexImage.fill_image modifiable_img Graphics.cyan;
     Imgmake.draw_string_on_image modifiable_img freemono_face draw_red str;
     let tex_img = glpix_of_glteximage modifiable_img in
     let apply_texture () =

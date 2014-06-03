@@ -75,21 +75,23 @@ let draw_rainbow x level =
 module Image_maker = functor (T : Fttext.T) ->
 struct
     module Fttext_instance = Fttext.Make(T)
-    (* extract duplication to get_font_dims or something later *)
-    let draw_string_on_image img face draw_func str = 
-        let glyphstring = (ftstring_of_string face str) in
-        let (x1, y1, x2, y2) = Fttext.size_of_glyphs face glyphstring in
-        let dim fudge_factor d1 d2 = truncate d2 - truncate d1 + fudge_factor * 2 in 
-        let (w, h) = (dim 1 x1 x2, dim 0 y1 y2) in
-        Fttext_instance.draw_glyphs face draw_func img (-int_of_float x1) (h+((-1)+int_of_float y1)) glyphstring
-    let image_of_string face draw_func str = 
+    let get_size_and_pos face str = 
         let glyphstring = (ftstring_of_string face str) in
         let (x1, y1, x2, y2) = Fttext.size_of_glyphs face glyphstring in
         (* "dim" adapted from libcamlimages-ocaml-doc/examples/ttfimg *)
         let dim fudge_factor d1 d2 = truncate d2 - truncate d1 + fudge_factor * 2 in 
         let (w, h) = (dim 1 x1 x2, dim 0 y1 y2) in
+        let (x, y) = ((-int_of_float x1), (h+((-1)+int_of_float y1))) in
+        (w,h,x,y)
+    
+    let draw_string_on_image img face draw_func str = 
+        let (w, h, x, y) = get_size_and_pos face str in
+        Fttext_instance.draw_glyphs face draw_func img x y (ftstring_of_string face str)
+
+    let image_of_string face draw_func str = 
+        let (w, h, x, y) = get_size_and_pos face str in
         let img_buf = T.create w h in
-        Fttext_instance.draw_glyphs face draw_func img_buf (-int_of_float x1) (h+((-1)+int_of_float y1)) glyphstring;
+        Fttext_instance.draw_glyphs face draw_func img_buf x y (ftstring_of_string face str);
         img_buf
 end;;
 
