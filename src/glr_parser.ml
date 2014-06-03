@@ -86,6 +86,13 @@ let show_parse_tree = fun tr ->
     ignore (Glut.createWindow ~title:"Parse Tree");
     let cd = make_camera_data (fun () -> ref 0.) in
     cd.xpos := 2.5; cd.ypos := 0.5; cd.zpos := -1.;
+    let module Imgmake = Image_maker(GlTexImage) in
+    let str = "Hello, world!" in
+    (* this will be overwritten, but still needs to be called to get the size *)
+    let modifiable_img = Imgmake.image_of_string freemono_face draw_red str in
+    GlTexImage.fill_image modifiable_img Graphics.blue;
+    Imgmake.draw_string_on_image modifiable_img freemono_face draw_red str;
+    let tex_img = glpix_of_glteximage modifiable_img in
     let apply_texture () =
         GlClear.color ~alpha: 1. (0.,0.,0.);
         GlDraw.shade_model `smooth;
@@ -98,10 +105,8 @@ let show_parse_tree = fun tr ->
         GlClear.clear [`color;`depth];
         Gl.enable `texture_2d;
         let tex_id = GlTex.gen_texture () in
-        (* let tex_img = GlPix.create `ubyte ~format: `rgb ~width:2 ~height:2 in *)
-        let modifiable_img = GlTexImage.create 2 2 in
-        List.iter (fun (x,y,v) -> GlTexImage.set modifiable_img x y v) [(0,0,Graphics.red);(0,1,Graphics.green);(1,0,Graphics.blue);(1,1,Graphics.cyan)];
-        let tex_img = glpix_of_glteximage modifiable_img in
+        (*let modifiable_img = GlTexImage.create 2 2 in
+        List.iter (fun (x,y,v) -> GlTexImage.set modifiable_img x y v) [(0,0,Graphics.red);(0,1,Graphics.green);(1,0,Graphics.blue);(1,1,Graphics.cyan)];*)
         GlTex.bind_texture ~target:`texture_2d tex_id;
         let par = GlTex.parameter ~target:`texture_2d in
         par (`min_filter `linear);
@@ -122,9 +127,9 @@ let show_parse_tree = fun tr ->
         List.iter (fun (x,y,u,v) ->
             GlTex.coord2 (u,v);
             GlDraw.vertex2 (x,y);
-        ) [(0.,0.,0.,0.);(0.,1.,0.,1.);(5.,1.,1.,1.);(5.,0.,1.,0.)];
+        ) [(0.,0.,0.,1.);(0.,1.,0.,0.);(5.,1.,1.,0.);(5.,0.,1.,1.)];
         GlDraw.ends ();
-        Glut.wireTeapot 0.50;
+        (* Glut.wireTeapot 0.50; *)
         Glut.swapBuffers () in
     GlMat.mode `modelview;
     Glut.displayFunc ~cb:render;

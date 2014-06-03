@@ -56,11 +56,17 @@ struct
     let set awh x y v = let v_tuple = int3_of_rgb v in set_tuple awh x y v_tuple;;
     let unsafe_get = get
     let unsafe_set = set
+    let fill_image (a,w,h) col =
+        let v_tuple = int3_of_rgb col in
+        for y = 0 to (h-1) do for x = 0 to (w-1) do
+            set_tuple (a,w,h) x y v_tuple;
+        done done
 end;;
 
 let glpix_of_glteximage (img,w,h) = GlPix.of_raw img ~format: `rgb ~width: w ~height: h;;
 
 (* Fttext.drawer is ('a -> int -> 'a), and it's applied elementwise on images (according to the output of Fttext.Make) (and according to putpixel in fttext.ml) *)
+(* let draw_template old level d_f = if (level > 16) then d_f old level else x; *)
 let draw_red x level = Graphics.rgb level 0 0;;
 let draw_rainbow x level =
     let (r,g,b) = (Random.int 255,Random.int 255, Random.int 255) in
@@ -69,6 +75,13 @@ let draw_rainbow x level =
 module Image_maker = functor (T : Fttext.T) ->
 struct
     module Fttext_instance = Fttext.Make(T)
+    (* extract duplication to get_font_dims or something later *)
+    let draw_string_on_image img face draw_func str = 
+        let glyphstring = (ftstring_of_string face str) in
+        let (x1, y1, x2, y2) = Fttext.size_of_glyphs face glyphstring in
+        let dim fudge_factor d1 d2 = truncate d2 - truncate d1 + fudge_factor * 2 in 
+        let (w, h) = (dim 1 x1 x2, dim 0 y1 y2) in
+        Fttext_instance.draw_glyphs face draw_func img (-int_of_float x1) (h+((-1)+int_of_float y1)) glyphstring
     let image_of_string face draw_func str = 
         let glyphstring = (ftstring_of_string face str) in
         let (x1, y1, x2, y2) = Fttext.size_of_glyphs face glyphstring in
