@@ -35,7 +35,7 @@ let key_press_handler_generator : ((int ref * int ref) -> (key:int -> x:int -> y
         if (key = Char.code 's') then incr_i keyy 1;
         ();;
 
-let move_delta = 0.1;;
+let move_delta = 1.0;;
 let rotate_delta = 0.1;;
 
 let move_in_direction dir cd =
@@ -97,7 +97,7 @@ let make_node_drawer str =
     GlTexImage.fill_image modifiable_img (Graphics.rgb 0x40 0x40 0x40);
     Imgmake.draw_string_on_image modifiable_img freemono_face draw_rainbow str;
     let img = glpix_of_glteximage modifiable_img in
-    (fun w h x y z ->
+    (fun w h x y z () ->
         apply_texture img;
         GlDraw.begins `quads;
         List.iter (fun (x,y,z,u,v) ->
@@ -107,14 +107,38 @@ let make_node_drawer str =
         GlDraw.ends ();
     );;
 
+let listtuple_of_tuplelist l =
+    let (rev_x, rev_y) =
+        List.fold_left (fun (acc_x,acc_y) (elem_x,elem_y) ->
+            (elem_x :: acc_x),(elem_y :: acc_y)
+        ) ([],[]) l in
+    (List.rev rev_x,List.rev rev_y);;
+
+let rec make_tree_drawer tr =
+    let (w,h) = (10.,10.) in
+    let Node(node,subtrees) = tr in
+    let draw_cur_node = make_node_drawer node in
+    let (draw_subtree_list, subtree_widths) = listtuple_of_tuplelist (List.map make_tree_drawer subtrees) in
+    let total_subwidth = List.fold_left (+.) 0. subtree_widths in
+    (fun x y z ->
+        draw_cur_node w h x y z ();
+        (*let offset = ref ((-.total_subwidth)/.2.) in*)
+        let offset = ref 0. in
+        List.iter2 (fun draw_subtree subtree_width ->
+            draw_subtree (x +. !offset) (y -. (2. *. h)) z;
+            incr_f offset subtree_width
+        ) draw_subtree_list subtree_widths;
+    ), (2.*.(max w total_subwidth));;
+
 let show_parse_tree = fun tr ->
     ignore( Glut.init Sys.argv );
     Glut.initDisplayMode ~double_buffer:true ();
     ignore (Glut.createWindow ~title:"Parse Tree");
     let cd = make_camera_data (fun () -> ref 0.) in
     cd.xpos := 2.5; cd.ypos := 0.5; cd.zpos := -1.;
-    let f = make_node_drawer "Hello, world!" in
-    let g = make_node_drawer "This string may or may not be, in fact, a string (but it is)." in
+    (*let f = make_node_drawer "Hello, world!" in
+    let g = make_node_drawer "This string may or may not be, in fact, a string (but it is)." in*)
+    let (draw_tree,_) = make_tree_drawer tr in
     let render () =
         GlClear.color ~alpha: 1. (0.,0.,0.);
         GlDraw.shade_model `smooth;
@@ -133,8 +157,9 @@ let show_parse_tree = fun tr ->
         GlMat.mode `modelview;
         GlMat.load_identity ();
         apply_camera_data cd;
-        f 5.0 1. 0. 0. 0.;
-        g 10.0 2. 0. 3. 0.;
+        (*f 5.0 1. 0. 0. 0. ();
+        g 10.0 2. 0. 3. 0. ();*)
+        draw_tree 0. 0. 0.;
         (* Glut.wireTeapot 0.50; *)
         Glut.swapBuffers () in
     GlMat.mode `modelview;
