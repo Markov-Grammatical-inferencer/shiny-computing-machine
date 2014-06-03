@@ -46,17 +46,19 @@ end;;
 
 module GlTexImage =
 struct
-    type t = ([`ubyte] Raw.t) * int
+    type t = ([`ubyte] Raw.t) * int * int
     type elt = Graphics.color
-    let create w h = (Raw.create `ubyte (3 * w * h) , w)
+    let create w h = (Raw.create `ubyte (3 * w * h), w, h)
     let destroy arr = ()
-    let get_tuple (arr,w) x y = let g offset = Raw.get arr (offset + (w * y) + x) in (g 0, g 1, g 2)
-    let set_tuple (arr,w) x y (v1, v2, v3) = let s offset v = Raw.set arr (offset + (w * y) + x) v in s 0 v1; s 1 v2; s 2 v3
-    let get aw x y = let (r,g,b) = get_tuple aw x y in Graphics.rgb r g b;;
-    let set aw x y v = let v_tuple = int3_of_rgb v in set_tuple aw x y v_tuple;;
+    let get_tuple (arr,w,h) x y = let g offset = Raw.get arr (offset + (3 * ((w * y) + x))) in (g 0, g 1, g 2)
+    let set_tuple (arr,w,h) x y (v1, v2, v3) = let s offset v = Raw.set arr (offset + (3 * ((w * y) + x))) v in s 0 v1; s 1 v2; s 2 v3
+    let get awh x y = let (r,g,b) = get_tuple awh x y in Graphics.rgb r g b;;
+    let set awh x y v = let v_tuple = int3_of_rgb v in set_tuple awh x y v_tuple;;
     let unsafe_get = get
     let unsafe_set = set
 end;;
+
+let glpix_of_glteximage (img,w,h) = GlPix.of_raw img ~format: `rgb ~width: w ~height: h;;
 
 module Graphic_fttext = Fttext.Make(GraphicImage);;
 module Gl_fttext = Fttext.Make(GlTexImage);;

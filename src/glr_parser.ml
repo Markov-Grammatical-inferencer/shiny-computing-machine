@@ -6,6 +6,7 @@ Compute the probability of the appearence of a word given N adjacent words?
 (* GLR Parser *)
 
 open Scm_util;;
+open Font_wrapper;;
 
 type 'a tree = Node of ('a * ('a tree list));;
 
@@ -59,13 +60,55 @@ let camera_key_press_handler : ((float ref camera_data) -> (key:int -> x:int -> 
         (* Printf.printf "%f,%f,%f,%f,%f\n%!" cd.xpos.contents cd.ypos.contents cd.zpos.contents cd.lrrot.contents cd.udrot.contents; *)
         ();;
 
+(* successful combination of openGL calls to enable textures translated from a previous project of mine: https://github.com/aweinstock314/correspondence_problem_demo/ *)
+(*
+glBindTexture(GL_TEXTURE_2D,texture_id);
+glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+glTexParameterf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE);
+glTexImage2D(GL_TEXTURE_2D,0,4,texture_width,texture_height,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
 
+glClearColor(0,0,0,1);
+glShadeModel(GL_SMOOTH);
+glClearDepth(1.0f);
+glEnable(GL_DEPTH_TEST);
+glDepthFunc(GL_LEQUAL);
+glEnable(GL_ALPHA_TEST);
+glEnable(GL_BLEND);
+glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+*)
 let show_parse_tree = fun tr ->
     ignore( Glut.init Sys.argv );
     Glut.initDisplayMode ~double_buffer:true ();
     ignore (Glut.createWindow ~title:"Parse Tree");
     let cd = make_camera_data (fun () -> ref 0.) in
     cd.xpos := 2.5; cd.ypos := 0.5; cd.zpos := -1.;
+    let apply_texture () =
+        GlClear.color ~alpha: 1. (0.,0.,0.);
+        GlDraw.shade_model `smooth;
+        GlClear.depth 1.;
+        Gl.enable `depth_test;
+        GlFunc.depth_func `lequal;
+        Gl.enable `alpha_test;
+        Gl.enable `blend;
+        GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
+        GlClear.clear [`color;`depth];
+        Gl.enable `texture_2d;
+        let tex_id = GlTex.gen_texture () in
+        (* let tex_img = GlPix.create `ubyte ~format: `rgb ~width:2 ~height:2 in *)
+        let modifiable_img = GlTexImage.create 2 2 in
+        List.iter (fun (x,y,v) -> GlTexImage.set modifiable_img x y v) [(0,0,Graphics.red);(0,1,Graphics.green);(1,0,Graphics.blue);(1,1,Graphics.cyan)];
+        let tex_img = glpix_of_glteximage modifiable_img in
+        GlTex.bind_texture ~target:`texture_2d tex_id;
+        let par = GlTex.parameter ~target:`texture_2d in
+        par (`min_filter `linear);
+        par (`mag_filter `linear);
+        par (`wrap_s `repeat);
+        par (`wrap_t `repeat);
+        GlTex.image2d ~proxy: false ~level: 0 ~internal:3 ~border:false tex_img in
     let render () =
         GlClear.clear [ `color ];
         GlMat.mode `projection;
@@ -73,6 +116,7 @@ let show_parse_tree = fun tr ->
         GlMat.frustum ~x: (-1.,1.) ~y: (-1.,1.) ~z: (0.5,100.);
         GlMat.mode `modelview;
         GlMat.load_identity ();
+        apply_texture ();
         apply_camera_data cd;
         GlDraw.begins `quads;
         List.iter (fun (x,y,u,v) ->
@@ -80,7 +124,7 @@ let show_parse_tree = fun tr ->
             GlDraw.vertex2 (x,y);
         ) [(0.,0.,0.,0.);(0.,1.,0.,1.);(5.,1.,1.,1.);(5.,0.,1.,0.)];
         GlDraw.ends ();
-        Glut.wireTeapot 5.75; 
+        Glut.wireTeapot 0.50;
         Glut.swapBuffers () in
     GlMat.mode `modelview;
     Glut.displayFunc ~cb:render;

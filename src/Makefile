@@ -44,13 +44,15 @@ slice.cmx: slice.ml
 slice.cmo: slice.ml
 	ocamlc $(OCC) -c slice.ml
 
-../glr_parser: scm_util.cmx glr_parser.ml
+../glr_parser: scm_util.cmx font_wrapper.cmx glr_parser.ml
 	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../glr_parser
-glr_parser.cmo: scm_util.cmo glr_parser.ml
+glr_parser.cmo: scm_util.cmo font_wrapper.cmo glr_parser.ml
 	ocamlc $(OCC) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_BYTECODE) $^ -c
 
 ../font_wrapper: scm_util.cmx font_wrapper.ml
 	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../font_wrapper
+font_wrapper.cmx: scm_util.cmx font_wrapper.ml
+	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -c
 font_wrapper.cmo: scm_util.cmo font_wrapper.ml
 	ocamlc $(OCC) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_BYTECODE) $^ -c
 
