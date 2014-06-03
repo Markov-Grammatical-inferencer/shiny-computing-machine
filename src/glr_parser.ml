@@ -19,9 +19,9 @@ type 'a camera_data = { xpos : 'a; ypos : 'a; zpos : 'a; lrrot : 'a; udrot : 'a 
 let make_camera_data init_func = {xpos = (init_func ()); ypos = (init_func ()); zpos = (init_func ()); lrrot = (init_func ()); udrot = (init_func ())};;
 
 let apply_camera_data : (float ref camera_data -> unit) = fun cd ->
-    GlMat.rotate ~angle: (rad_to_deg cd.udrot.contents) ~x: 1. ();
-    GlMat.rotate ~angle: (rad_to_deg cd.lrrot.contents) ~y: 1. ();
-    GlMat.translate ~x: (-.cd.xpos.contents) ~y: (-.cd.ypos.contents) ~z: (-.cd.zpos.contents) ();
+    GlMat.rotate ~angle: (rad_to_deg cd.udrot.contents) ~x: (-.1.) ();
+    GlMat.rotate ~angle: (rad_to_deg cd.lrrot.contents) ~y: (-.1.) ();
+    GlMat.translate ~x: (-.cd.xpos.contents) ~y: (-.cd.ypos.contents) ~z: (cd.zpos.contents) ();
     ();;
 
 let key_press_handler_generator : ((int ref * int ref) -> (key:int -> x:int -> y:int -> unit)) = fun input_tuple ->
@@ -65,14 +65,22 @@ let show_parse_tree = fun tr ->
     Glut.initDisplayMode ~double_buffer:true ();
     ignore (Glut.createWindow ~title:"Parse Tree");
     let cd = make_camera_data (fun () -> ref 0.) in
+    cd.xpos := 2.5; cd.ypos := 0.5; cd.zpos := -1.;
     let render () =
         GlClear.clear [ `color ];
+        GlMat.mode `projection;
+        GlMat.load_identity ();
+        GlMat.frustum ~x: (-1.,1.) ~y: (-1.,1.) ~z: (0.5,100.);
+        GlMat.mode `modelview;
         GlMat.load_identity ();
         apply_camera_data cd;
-        (*GlDraw.begins `triangles;
-        List.iter GlDraw.vertex2 [-1., -1.; 0., 1.; 1., -1.];
-        GlDraw.ends ();*)
-        Glut.wireTeapot 0.75;
+        GlDraw.begins `quads;
+        List.iter (fun (x,y,u,v) ->
+            GlTex.coord2 (u,v);
+            GlDraw.vertex2 (x,y);
+        ) [(0.,0.,0.,0.);(0.,1.,0.,1.);(5.,1.,1.,1.);(5.,0.,1.,0.)];
+        GlDraw.ends ();
+        Glut.wireTeapot 5.75; 
         Glut.swapBuffers () in
     GlMat.mode `modelview;
     Glut.displayFunc ~cb:render;

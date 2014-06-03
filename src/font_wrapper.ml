@@ -80,7 +80,18 @@ let draw_string face draw_func str x y =
     Graphics.clear_graph ();
     Graphics.draw_image (Graphics.make_image img_buf) x y;;
 
+(*
+#load "graphics.cma";;
+#load "camlimages_core.cma";;
+#load "camlimages_freetype.cma";;
+#load "lablgl.cma";;
+#load "scm_util.cmo";;
+#load "font_wrapper.cmo";;
+open Font_wrapper;;
+*)
+
 (* example main *)
+(*
 try
     Graphics.open_graph "";
     (* draw_string freemono_face draw_rainbow "\"Is a sentence fragment\" is a sentence fragment." 0 0; *) (* ends up cut off with default window size, but is otherwise fine *)
@@ -88,3 +99,4 @@ try
     ignore(Graphics.wait_next_event []);
     ()
 with _ -> ();;
+*)
