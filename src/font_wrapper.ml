@@ -60,26 +60,29 @@ end;;
 
 let glpix_of_glteximage (img,w,h) = GlPix.of_raw img ~format: `rgb ~width: w ~height: h;;
 
-module Graphic_fttext = Fttext.Make(GraphicImage);;
-module Gl_fttext = Fttext.Make(GlTexImage);;
-
 (* Fttext.drawer is ('a -> int -> 'a), and it's applied elementwise on images (according to the output of Fttext.Make) (and according to putpixel in fttext.ml) *)
 let draw_red x level = Graphics.rgb level 0 0;;
 let draw_rainbow x level =
     let (r,g,b) = (Random.int 255,Random.int 255, Random.int 255) in
     if (level > 32) then Graphics.rgb r g b else x;;
 
+module Image_maker = functor (T : Fttext.T) ->
+struct
+    module Fttext_instance = Fttext.Make(T)
+    let image_of_string face draw_func str = 
+        let glyphstring = (ftstring_of_string face str) in
+        let (x1, y1, x2, y2) = Fttext.size_of_glyphs face glyphstring in
+        (* "dim" adapted from libcamlimages-ocaml-doc/examples/ttfimg *)
+        let dim fudge_factor d1 d2 = truncate d2 - truncate d1 + fudge_factor * 2 in 
+        let (w, h) = (dim 1 x1 x2, dim 0 y1 y2) in
+        let img_buf = T.create w h in
+        Fttext_instance.draw_glyphs face draw_func img_buf (-int_of_float x1) (h+((-1)+int_of_float y1)) glyphstring;
+        img_buf
+end;;
+
 let draw_string face draw_func str x y =
-    let glyphstring = (ftstring_of_string face str) in
-    let (x1, y1, x2, y2) = Fttext.size_of_glyphs face glyphstring in
-    (* Printf.printf "%f,%f,%f,%f\n%!" x1 y1 x2 y2; *)
-    (* "dim" adapted from libcamlimages-ocaml-doc/examples/ttfimg *)
-    let dim fudge_factor d1 d2 = truncate d2 - truncate d1 + fudge_factor * 2 in 
-    let (w, h) = (dim 1 x1 x2, dim 0 y1 y2) in
-    (* Printf.printf "%d, %d\n%!" w h; *)
-    let img_buf = GraphicImage.create w h in
-    Graphic_fttext.draw_glyphs face draw_func img_buf (-int_of_float x1) (h+((-1)+int_of_float y1)) glyphstring;
-    Graphics.clear_graph ();
+    let module M = Image_maker(GraphicImage) in
+    let img_buf = M.image_of_string face draw_func str in
     Graphics.draw_image (Graphics.make_image img_buf) x y;;
 
 (*
