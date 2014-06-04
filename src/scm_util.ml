@@ -9,8 +9,8 @@ let rad_to_deg x = x /. tau *. 360.;;
 let clamp lo hi x = max lo (min x hi);;
 let inplace fn xref = xref := (fn !xref);;
 
-let incr_i x a = inplace ((+) a) x;;
-let incr_f x a = inplace ((+.) a) x;;
+let (+=) x a = inplace ((+) a) x;;
+let (+.=) x a = inplace ((+.) a) x;;
 
 let compose f g x = f (g x);;
 
@@ -19,7 +19,7 @@ let string_map f str =
     let index = ref 0 in
     String.iter (fun ch ->
         Array.set arr !index (f ch);
-        incr_i index 1
+        index += 1
         ) str;
     arr;;
 
