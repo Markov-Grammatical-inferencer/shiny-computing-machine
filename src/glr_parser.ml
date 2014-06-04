@@ -107,18 +107,11 @@ let make_node_drawer str =
         GlDraw.ends ();
     );;
 
-let listtuple_of_tuplelist l =
-    let (rev_x, rev_y) =
-        List.fold_left (fun (acc_x,acc_y) (elem_x,elem_y) ->
-            (elem_x :: acc_x),(elem_y :: acc_y)
-        ) ([],[]) l in
-    (List.rev rev_x,List.rev rev_y);;
-
 let rec make_tree_drawer tr =
     let (w,h) = (10.,10.) in
     let Node(node,subtrees) = tr in
     let draw_cur_node = make_node_drawer node in
-    let (draw_subtree_list, subtree_widths) = listtuple_of_tuplelist (List.map make_tree_drawer subtrees) in
+    let (draw_subtree_list, subtree_widths) = List.unzip (List.map make_tree_drawer subtrees) in
     let total_subwidth = List.fold_left (+.) 0. subtree_widths in
     (fun x y z ->
         draw_cur_node w h x y z ();

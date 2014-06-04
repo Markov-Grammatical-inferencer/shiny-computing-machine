@@ -18,8 +18,8 @@ let string_map f str =
     let arr = Array.create (String.length str) (f 'a') in
     let index = ref 0 in
     String.iter (fun ch ->
-        Array.set arr index.contents (f ch);
-        index.contents <- index.contents + 1
+        Array.set arr !index (f ch);
+        incr_i index 1
         ) str;
     arr;;
 
@@ -28,3 +28,15 @@ let get_r c = Int32.to_int (Int32.shift_right (Int32.logand (Int32.of_int c) (In
 let get_g c = Int32.to_int (Int32.shift_right (Int32.logand (Int32.of_int c) (Int32.of_int 0x00FF00)) 8) in
 let get_b c = Int32.to_int                    (Int32.logand (Int32.of_int c) (Int32.of_int 0x0000FF)) in
     (get_r col, get_g col, get_b col);;
+
+module List =
+struct
+include List
+let zip l1 l2 = List.rev (List.fold_left2 (fun acc e1 e2 -> (e1,e2) :: acc) [] l1 l2);;
+let unzip l =
+    let (rev_x, rev_y) =
+        List.fold_left (fun (acc_x,acc_y) (elem_x,elem_y) ->
+            (elem_x :: acc_x),(elem_y :: acc_y)
+        ) ([],[]) l in
+    (List.rev rev_x,List.rev rev_y)
+end;;
