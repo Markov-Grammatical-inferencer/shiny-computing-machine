@@ -6,7 +6,7 @@ GRAPHICS_DIRS=-I +lablgl -I +camlimages
 GRAPHICS_LIBS_COMPILED=lablgl.cmxa lablglut.cmxa graphics.cmxa camlimages_core.cmxa camlimages_freetype.cmxa 
 GRAPHICS_LIBS_BYTECODE=lablgl.cma lablglut.cma graphics.cma camlimages_core.cma camlimages_freetype.cma 
 
-all: ../SCM ../glr_parser ../font_wrapper libs
+all: ../SCM ../opengl_visualization libs
 
 libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo
 	touch libs #dummy file so that make gets the right timestamp
@@ -14,12 +14,12 @@ libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo
 test: filereader.cmo string_splitter.cmo slice.cmo
 	ocaml tests.ml
 
-ngramdisplay.cmx: disambiguator.cmx  ngramdisplay.ml
+ngramdisplay.cmx: disambiguator.cmx ngramdisplay.ml
 	$(OC) $(OCLIB) graphics.cmxa slice.cmx disambiguator.cmx ngramdisplay.ml
 
 
 ../SCM: spell_checker.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml 
-	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
+	$(OC) $(OCOPT) $(OCLIB) -I . slice.cmx spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
 
 
 disambiguator.cmx: slice.cmx disambiguator.ml
@@ -50,10 +50,14 @@ slice.cmo: slice.ml
 spell_checker.cmx:spell_checking.ml 
 	$(OC) $(OCOPT) -c spell_checking.ml 
 
+glr_parser.cmx: glr_parser.ml
+	$(OC) $(OCOPT) -c glr_parser.ml
+glr_parser.cmo: glr_parser.ml
+	ocamlc $(OCC) -c glr_parser.ml
 
-../glr_parser: scm_util.cmx font_wrapper.cmx glr_parser.ml
-	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../glr_parser
-glr_parser.cmo: scm_util.cmo font_wrapper.cmo glr_parser.ml
+../opengl_visualization: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.ml
+	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../opengl_visualization
+opengl_visualization.cmo: scm_util.cmo glr_parser.cmo font_wrapper.cmo opengl_visualization.ml
 	ocamlc $(OCC) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_BYTECODE) $^ -c
 
 ../font_wrapper: scm_util.cmx font_wrapper.ml
@@ -64,4 +68,4 @@ font_wrapper.cmo: scm_util.cmo font_wrapper.ml
 	ocamlc $(OCC) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_BYTECODE) $^ -c
 
 clean:
-	rm *.cmi  *.cmx *.cmo *.annot *.o
+	rm *.cmi *.cmx *.cmo *.annot *.o
