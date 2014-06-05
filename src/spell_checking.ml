@@ -2,7 +2,13 @@
 #load "slice.cmo";;
 #load "str.cma";;
  *)
-open Slice;;
+
+(*
+Provides exceedingly basic spell checking support. 
+Probably not quite what was in mind...
+
+Also thanks to Peter Norvig's "How to Write a Spelling Corrector" for detailing the algorithm which is used here more or less effectively.
+*)
 type feature=string * string;;
 module Stringset=Set.Make(String);;
 let load_test_file name=
@@ -134,12 +140,21 @@ let deserialize file=
 	     nwords:=Stringset.add x !nwords;
 	     Hashtbl.add modelling x y) values;;
 
+let get_candidates word=
+  (*Return all of the candidates which are shown to be in the dictionary*)
+   let a=(Stringset.union (known (Stringset.elements (edits word))) (known_edits word)) in 
+  let b=(Stringset.union (known_edits word) a) in 
+  let c=Stringset.remove "" (Stringset.add word b) in 
+  let i=known (Stringset.elements c) in 
+  i;;
+
 let correct word=
+  (*Get the most likely word for the correction*)
   let a=(Stringset.union (known (Stringset.elements (edits word))) (known_edits word)) in 
   let b=(Stringset.union (known_edits word) a) in 
   let c=Stringset.remove "" (Stringset.add word b) in 
   let mx=ref 0 in 
-  let candid=ref "" in
+  let candid=ref "No word found" in
   print_endline (string_of_int !mx);
   Stringset.iter (fun x->
 		  if Hashtbl.mem modelling x then 
