@@ -2,6 +2,16 @@ open Scm_util;;
 open Font_wrapper;;
 open Glr_parser;;
 
+(*
+#load "graphics.cma";;
+#load "lablgl.cma";;
+#load "lablglut.cma";;
+#load "camlimages_core.cma";;
+#load "camlimages_freetype.cma";;
+#load "scm_util.cmo";;
+#load "font_wrapper.cmo";;
+*)
+
 type 'a camera_data = { xpos : 'a; ypos : 'a; zpos : 'a; lrrot : 'a; udrot : 'a };;
 (* input is a thunk so that it can initialize with a ref without aliasing issues *)
 let make_camera_data init_func = {xpos = (init_func ()); ypos = (init_func ()); zpos = (init_func ()); lrrot = (init_func ()); udrot = (init_func ())};;
@@ -100,29 +110,23 @@ let rec make_tree_drawer tr =
     let draw_cur_node = make_node_drawer node in
     let (draw_subtree_list, subtree_widths) = List.unzip (List.map make_tree_drawer subtrees) in
     let total_subwidth = List.fold_left (+.) 0. subtree_widths in
-    (fun x y z ->
+    (fun x y z () ->
         draw_cur_node w h x y z ();
         (*let offset = ref ((-.total_subwidth)/.2.) in*)
         let offset = ref 0. in
         List.iter2 (fun draw_subtree subtree_width ->
-            draw_subtree (x +. !offset) (y -. (2. *. h)) z;
+            draw_subtree (x +. !offset) (y -. (2. *. h)) z ();
             offset +.= subtree_width
         ) draw_subtree_list subtree_widths;
     ), (2.*.(max w total_subwidth));;
 
-(* let with_opengl_context drawfn = *)
-
-
-let show_parse_tree = fun tr ->
+let with_opengl_context drawfn =
     ignore( Glut.init Sys.argv );
     Glut.initDisplayMode ~double_buffer:true ();
     ignore (Glut.createWindow ~title:"Parse Tree");
     let cd = make_camera_data (fun () -> ref 0.) in
     cd.xpos := 2.5; cd.ypos := 0.5; cd.zpos := -1.;
-    (*let f = make_node_drawer "Hello, world!" in
-    let g = make_node_drawer "This string may or may not be, in fact, a string (but it is)." in*)
-    let (draw_tree,_) = make_tree_drawer tr in
-    let render () =
+    let render fn () =
         GlClear.color ~alpha: 1. (0.,0.,0.);
         GlDraw.shade_model `smooth;
         GlClear.depth 1.;
@@ -140,15 +144,17 @@ let show_parse_tree = fun tr ->
         GlMat.mode `modelview;
         GlMat.load_identity ();
         apply_camera_data cd;
-        (*f 5.0 1. 0. 0. 0. ();
-        g 10.0 2. 0. 3. 0. ();*)
-        draw_tree 0. 0. 0.;
-        (* Glut.wireTeapot 0.50; *)
+        fn ();
         Glut.swapBuffers () in
     GlMat.mode `modelview;
-    Glut.displayFunc ~cb:render;
+    Glut.displayFunc ~cb:(render drawfn);
     Glut.keyboardFunc (camera_key_press_handler cd);
     Glut.idleFunc ~cb:(Some Glut.postRedisplay);
         Glut.mainLoop ();;
+
+
+let show_parse_tree tr =
+    let (draw_tree,_) = make_tree_drawer tr in
+        with_opengl_context (draw_tree 0. 0. 0.);;
 
 show_parse_tree (Node("S",[Node("NP",[Node("NN",[Node("I",[])])]);Node("VP",[Node("VBZ",[Node("am",[])])])]));;

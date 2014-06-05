@@ -8,7 +8,7 @@ GRAPHICS_LIBS_BYTECODE=lablgl.cma lablglut.cma graphics.cma camlimages_core.cma 
 
 all: ../SCM ../opengl_visualization libs
 
-libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo
+libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo
 	touch libs #dummy file so that make gets the right timestamp
 
 test: filereader.cmo string_splitter.cmo slice.cmo
@@ -18,7 +18,7 @@ ngramdisplay.cmx: disambiguator.cmx ngramdisplay.ml
 	$(OC) $(OCLIB) graphics.cmxa slice.cmx disambiguator.cmx ngramdisplay.ml
 
 
-../SCM: spell_checker.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml 
+../SCM: spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml 
 	$(OC) $(OCOPT) $(OCLIB) -I . slice.cmx spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
 
 
@@ -47,7 +47,7 @@ slice.cmx: slice.ml
 slice.cmo: slice.ml
 	ocamlc $(OCC) -c slice.ml
 
-spell_checker.cmx:spell_checking.ml 
+spell_checking.cmx: spell_checking.ml 
 	$(OC) $(OCOPT) -c spell_checking.ml 
 
 glr_parser.cmx: glr_parser.ml
