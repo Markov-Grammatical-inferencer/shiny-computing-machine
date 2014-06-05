@@ -19,7 +19,7 @@ ngramdisplay.cmx: disambiguator.cmx  ngramdisplay.ml
 
 
 ../SCM: spell_checker.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml 
-	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx spell_checker.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
+	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
 
 
 disambiguator.cmx: slice.cmx disambiguator.ml
