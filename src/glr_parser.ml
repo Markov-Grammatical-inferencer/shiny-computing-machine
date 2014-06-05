@@ -29,18 +29,18 @@ let key_press_handler_generator : ((int ref * int ref) -> (key:int -> x:int -> y
     fun ~key ~x ~y ->
         (*Printf.printf "Key %d, %d, %d\n%!" key x y;*)
         let (keyx, keyy) = input_tuple in
-        if (key = Char.code 'a') then incr_i keyx (-1);
-        if (key = Char.code 'd') then incr_i keyx 1;
-        if (key = Char.code 'w') then incr_i keyy (-1);
-        if (key = Char.code 's') then incr_i keyy 1;
+        if (key = Char.code 'a') then keyx += (-1);
+        if (key = Char.code 'd') then keyx += 1;
+        if (key = Char.code 'w') then keyy += (-1);
+        if (key = Char.code 's') then keyy += 1;
         ();;
 
-let move_delta = 0.1;;
+let move_delta = 1.0;;
 let rotate_delta = 0.1;;
 
 let move_in_direction dir cd =
-    incr_f cd.xpos (move_delta *. (cos dir));
-    incr_f cd.zpos (move_delta *. (sin dir));
+    cd.xpos +.= (move_delta *. (cos dir));
+    cd.zpos +.= (move_delta *. (sin dir));
     ();;
 
 let camera_key_press_handler : ((float ref camera_data) -> (key:int -> x:int -> y:int -> unit)) = fun cd ->
@@ -49,14 +49,14 @@ let camera_key_press_handler : ((float ref camera_data) -> (key:int -> x:int -> 
         if (key = Char.code 'd') then move_in_direction (cd.lrrot.contents +. (tau *. 0.00)) cd;
         if (key = Char.code 'w') then move_in_direction (cd.lrrot.contents +. (tau *. 0.25)) cd;
         if (key = Char.code 's') then move_in_direction (cd.lrrot.contents +. (tau *. 0.75)) cd;
-        if (key = Char.code 'q') then incr_f cd.ypos (-1. *. move_delta);
-        if (key = Char.code 'e') then incr_f cd.ypos (1. *. move_delta);
+        if (key = Char.code 'q') then cd.ypos +.= (-1. *. move_delta);
+        if (key = Char.code 'e') then cd.ypos +.= (1. *. move_delta);
 
-        if (key = Char.code 'i') then incr_f cd.udrot (1. *. rotate_delta);
-        if (key = Char.code 'k') then incr_f cd.udrot (-1. *. rotate_delta);
+        if (key = Char.code 'i') then cd.udrot +.= (1. *. rotate_delta);
+        if (key = Char.code 'k') then cd.udrot +.= (-1. *. rotate_delta);
         inplace (clamp ((-.tau) /. 4.) (tau /. 4.)) cd.udrot;
-        if (key = Char.code 'j') then incr_f cd.lrrot (1. *. rotate_delta);
-        if (key = Char.code 'l') then incr_f cd.lrrot (-1. *. rotate_delta);
+        if (key = Char.code 'j') then cd.lrrot +.= (1. *. rotate_delta);
+        if (key = Char.code 'l') then cd.lrrot +.= (-1. *. rotate_delta);
         (* Printf.printf "%f,%f,%f,%f,%f\n%!" cd.xpos.contents cd.ypos.contents cd.zpos.contents cd.lrrot.contents cd.udrot.contents; *)
         ();;
 
@@ -80,20 +80,59 @@ glEnable(GL_BLEND);
 glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 *)
+let apply_texture img =
+    let tex_id = GlTex.gen_texture () in
+    GlTex.bind_texture ~target:`texture_2d tex_id;
+    let par = GlTex.parameter ~target:`texture_2d in
+    par (`min_filter `nearest);
+    par (`mag_filter `nearest);
+    par (`wrap_s `repeat);
+    par (`wrap_t `repeat);
+    GlTex.image2d ~proxy: false ~level: 0 ~internal:3 ~border:false img;;
+
+let make_node_drawer str =
+    let module Imgmake = Image_maker(GlTexImage) in
+    let (w, h, x, y) = Imgmake.get_size_and_pos freemono_face str in
+    let modifiable_img = GlTexImage.create w h in
+    GlTexImage.fill_image modifiable_img (Graphics.rgb 0x40 0x40 0x40);
+    Imgmake.draw_string_on_image modifiable_img freemono_face draw_rainbow str;
+    let img = glpix_of_glteximage modifiable_img in
+    (fun w h x y z () ->
+        apply_texture img;
+        GlDraw.begins `quads;
+        List.iter (fun (x,y,z,u,v) ->
+            GlTex.coord2 (u,v);
+            GlDraw.vertex3 (x,y,z);
+        ) [(x,y,z,0.,1.);(x,y+.h,z,0.,0.);(x+.w,y+.h,z,1.,0.);(x+.w,y,z,1.,1.)];
+        GlDraw.ends ();
+    );;
+
+let rec make_tree_drawer tr =
+    let (w,h) = (10.,10.) in
+    let Node(node,subtrees) = tr in
+    let draw_cur_node = make_node_drawer node in
+    let (draw_subtree_list, subtree_widths) = List.unzip (List.map make_tree_drawer subtrees) in
+    let total_subwidth = List.fold_left (+.) 0. subtree_widths in
+    (fun x y z ->
+        draw_cur_node w h x y z ();
+        (*let offset = ref ((-.total_subwidth)/.2.) in*)
+        let offset = ref 0. in
+        List.iter2 (fun draw_subtree subtree_width ->
+            draw_subtree (x +. !offset) (y -. (2. *. h)) z;
+            offset +.= subtree_width
+        ) draw_subtree_list subtree_widths;
+    ), (2.*.(max w total_subwidth));;
+
 let show_parse_tree = fun tr ->
     ignore( Glut.init Sys.argv );
     Glut.initDisplayMode ~double_buffer:true ();
     ignore (Glut.createWindow ~title:"Parse Tree");
     let cd = make_camera_data (fun () -> ref 0.) in
     cd.xpos := 2.5; cd.ypos := 0.5; cd.zpos := -1.;
-    let module Imgmake = Image_maker(GlTexImage) in
-    let str = "Hello, world!" in
-    let (w, h, x, y) = Imgmake.get_size_and_pos freemono_face str in
-    let modifiable_img = GlTexImage.create w h in
-    GlTexImage.fill_image modifiable_img Graphics.cyan;
-    Imgmake.draw_string_on_image modifiable_img freemono_face draw_red str;
-    let tex_img = glpix_of_glteximage modifiable_img in
-    let apply_texture () =
+    (*let f = make_node_drawer "Hello, world!" in
+    let g = make_node_drawer "This string may or may not be, in fact, a string (but it is)." in*)
+    let (draw_tree,_) = make_tree_drawer tr in
+    let render () =
         GlClear.color ~alpha: 1. (0.,0.,0.);
         GlDraw.shade_model `smooth;
         GlClear.depth 1.;
@@ -104,31 +143,16 @@ let show_parse_tree = fun tr ->
         GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
         GlClear.clear [`color;`depth];
         Gl.enable `texture_2d;
-        let tex_id = GlTex.gen_texture () in
-        (*let modifiable_img = GlTexImage.create 2 2 in
-        List.iter (fun (x,y,v) -> GlTexImage.set modifiable_img x y v) [(0,0,Graphics.red);(0,1,Graphics.green);(1,0,Graphics.blue);(1,1,Graphics.cyan)];*)
-        GlTex.bind_texture ~target:`texture_2d tex_id;
-        let par = GlTex.parameter ~target:`texture_2d in
-        par (`min_filter `linear);
-        par (`mag_filter `linear);
-        par (`wrap_s `repeat);
-        par (`wrap_t `repeat);
-        GlTex.image2d ~proxy: false ~level: 0 ~internal:3 ~border:false tex_img in
-    let render () =
         GlClear.clear [ `color ];
         GlMat.mode `projection;
         GlMat.load_identity ();
         GlMat.frustum ~x: (-1.,1.) ~y: (-1.,1.) ~z: (0.5,100.);
         GlMat.mode `modelview;
         GlMat.load_identity ();
-        apply_texture ();
         apply_camera_data cd;
-        GlDraw.begins `quads;
-        List.iter (fun (x,y,u,v) ->
-            GlTex.coord2 (u,v);
-            GlDraw.vertex2 (x,y);
-        ) [(0.,0.,0.,1.);(0.,1.,0.,0.);(5.,1.,1.,0.);(5.,0.,1.,1.)];
-        GlDraw.ends ();
+        (*f 5.0 1. 0. 0. 0. ();
+        g 10.0 2. 0. 3. 0. ();*)
+        draw_tree 0. 0. 0.;
         (* Glut.wireTeapot 0.50; *)
         Glut.swapBuffers () in
     GlMat.mode `modelview;
