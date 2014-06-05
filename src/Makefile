@@ -18,8 +18,8 @@ ngramdisplay.cmx: disambiguator.cmx  ngramdisplay.ml
 	$(OC) $(OCLIB) graphics.cmxa slice.cmx disambiguator.cmx ngramdisplay.ml
 
 
-../SCM: disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml
-	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
+../SCM: spell_checker.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml 
+	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx spell_checker.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
 
 
 disambiguator.cmx: slice.cmx disambiguator.ml
@@ -46,6 +46,10 @@ slice.cmx: slice.ml
 	$(OC) $(OCOPT) -c slice.ml
 slice.cmo: slice.ml
 	ocamlc $(OCC) -c slice.ml
+
+spell_checker.cmx:spell_checking.ml 
+	$(OC) $(OCOPT) -c spell_checking.ml 
+
 
 ../glr_parser: scm_util.cmx font_wrapper.cmx glr_parser.ml
 	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../glr_parser
