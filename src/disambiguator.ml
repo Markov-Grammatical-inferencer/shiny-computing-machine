@@ -6,9 +6,20 @@ module IntSet=Set.Make(struct
 
 type textual={prec:int list;follow:int list};;
 type word={id:int;ctx:IntSet.t};;
+(*
+Generate sub contexts based upon the extant full one.
+
+generate_sub_contexts t x generates a list of contexts with a minimum of x words to either side.
+ *)
+let rec generate_sub_contexts (ctx:textual) (minlen:int)=
+  if (min (List.length ctx.prec) (List.length ctx.follow))>minlen then
+    [{prec=(List.tl ctx.prec);follow=(List.tl ctx.follow)}]@(generate_sub_contexts {prec=(List.tl ctx.prec);follow=(List.tl ctx.follow)} minlen)
+  else
+    [];;
 class disambiguator=
 object(self)
   val mutable reverse_words:(int, string) Hashtbl.t=Hashtbl.create 1
+  val mutable reverse_context:(int, textual) Hashtbl.t =Hashtbl.create 3
   val mutable context:(textual, int) Hashtbl.t= Hashtbl.create 2
   val mutable words:(string,word) Hashtbl.t= Hashtbl.create 2
   val mutable lastword:int=0
@@ -29,6 +40,7 @@ object(self)
         Hashtbl.add context c lastword;
 	let i=Hashtbl.find words w in
         Hashtbl.replace words w {id=i.id;ctx=(IntSet.add lastword i.ctx)};(*Add the context to the word*)
+	Hashtbl.add reverse_context lastword c;
         lastword<-lastword+1;
         lastword-1(*return the context identifier*)
       end
@@ -49,7 +61,7 @@ object(self)
     let i=Hashtbl.find words w in
     i.id
 
-  method search_for_potential_similar_words (threshold:float)=
+  method search_for_potential_similar_words ?d:(debug=false) (threshold:float) =
     (*TODO Write this function*)
     let getkeys=fun h -> Hashtbl.fold (fun k v acc -> k :: acc) h [] in
     let minset=fun h c-> if (IntSet.cardinal h)>(IntSet.cardinal c) then 
@@ -58,6 +70,8 @@ object(self)
 			   IntSet.cardinal h in 
     let dc=getkeys words in (*Obtain the words in the thingies*)
    (* let counter=ref 0 in *)
+    let counter=ref 0 in 
+    let wordsret:(string *string) list ref= ref [] in 
     let map1func=
       (fun x->
       let map2func=
@@ -71,14 +85,20 @@ object(self)
 	    let e=float_of_int (minset a.ctx b.ctx) in 
 	    if (d/.e)>=threshold then 
 	      begin
-		let f=IntSet.union a.ctx b.ctx in 
+(*		let f=IntSet.union a.ctx b.ctx in 
 		Hashtbl.replace words x {id=a.id;ctx=f};
 		Hashtbl.replace words y {id=b.id;ctx=f};
+*)
+		if debug then
+		    IntSet.iter (fun x ->self#print_context (Hashtbl.find reverse_context x)) c;
+		wordsret:=!wordsret@[(x,y)];
+		counter:=!counter+1
 	      end
 	  end) in 	
       List.iter map2func dc) in 
     List.iter map1func dc;
-    ()
+    if debug then print_endline (string_of_int !counter);
+    !wordsret
 
   method doeswordappearin (c:textual) (w:string)=
     (*Returns whether or not a word appears in a specific context. *)
@@ -100,37 +120,28 @@ object(self)
     List.iter (fun x->print_endline (Hashtbl.find reverse_words x)) c.follow;
     ()
 
+  method get_word_context (s:string)=
+    Hashtbl.find reverse_context (IntSet.min_elt (Hashtbl.find words s).ctx)
+
   method generate_context (p:string list) (f:string list)=
     (*Generates a context by the list of words used.*)
     let p=List.map self#getwordcode p in
     let c=List.map self#getwordcode f in
     {prec=p;follow=c}
 
+  method get_word (i:int)=
+    Hashtbl.find reverse_words i
+
   method process_into_context (s:string list)=
     let v = (List.length s) in
     List.iter (fun x->ignore(self#addword x)) s;
-    let err=(fun msg->      print_endline "this is broken";
-      print_endline msg;
-      List.iter print_endline s) in
-    try
-    if v>=3 then
-      begin
-	for i=3 to (v-3) do
-	  for offset=1 to 3 do
-	    let c=(slice s (i-offset) (i-1)) in
-	    let d=(slice s (i+1) (i+offset))in
-	    self#addcontext (self#generate_context c d) (List.nth s i)
-	  done
-	done;
-      end
-    else 
-      begin
-	for i=1 to (List.length s) do
-	  let c=slice s i ((List.length s)-1) in 
-	  self#addcontext (self#generate_context [] c) (List.nth s i);
-	done
-      end;
-    with Failure msg->
-      err msg
-  end;;
-
+    let d=self#generate_context [] (slice s 1 ((List.length s)-1)) in
+    if v>0 then
+      ignore(self#addcontext d (List.hd s));
+    for i=1 to (v-1) do
+      let e=(self#generate_context (slice s 0 (i-1)) (slice s (i+1) (v-1))) in
+      let f=(generate_sub_contexts e 3) in 
+      List.iter (fun x->ignore(self#addcontext x (List.nth s i))) f;
+      self#addcontext e (List.nth s i);
+    done;
+end;;

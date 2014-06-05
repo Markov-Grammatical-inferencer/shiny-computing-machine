@@ -9,6 +9,6 @@ let ()=
   Gc.major ();
   print_endline "Prior to contextual linking";
   i#print_info;
-  i#search_for_potential_similar_words 0.5;
+  List.iter (fun x-> let i,b = x in print_endline (i^","^b)) (i#search_for_potential_similar_words 0.3);
   print_endline "After contextual linking";
   i#print_info;;

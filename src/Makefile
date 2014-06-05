@@ -14,6 +14,9 @@ libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo
 test: filereader.cmo string_splitter.cmo slice.cmo
 	ocaml tests.ml
 
+ngramdisplay.cmx: disambiguator.cmx  ngramdisplay.ml
+	$(OC) $(OCLIB) graphics.cmxa slice.cmx disambiguator.cmx ngramdisplay.ml
+
 
 ../SCM: disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml
 	$(OC) $(OCOPT) $(OCLIB)  -I .  slice.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
