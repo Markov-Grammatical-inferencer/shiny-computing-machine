@@ -11,7 +11,7 @@ all: ../SCM ../opengl_visualization libs
 libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo
 	touch libs #dummy file so that make gets the right timestamp
 
-test: filereader.cmo string_splitter.cmo slice.cmo
+test: file_reader.cmo string_splitter.cmo slice.cmo
 	ocaml tests.ml
 
 ngramdisplay.cmx: disambiguator.cmx ngramdisplay.ml
@@ -45,10 +45,13 @@ string_splitter.cmo: string_splitter.ml
 slice.cmx: slice.ml
 	$(OC) $(OCOPT) -c slice.ml
 slice.cmo: slice.ml
-	ocamlc $(OCC) -c slice.ml
+	ocamlc $(OCC) -c  slice.ml
 
 spell_checking.cmx: slice.cmx spell_checking.ml 
 	$(OC) $(OCOPT) -c $^
+
+spell_checking.cmo:spell_checking.ml
+	ocamlc $(OCC) -c str.cma spell_checking.ml
 
 glr_parser.cmx: glr_parser.ml
 	$(OC) $(OCOPT) -c glr_parser.ml
