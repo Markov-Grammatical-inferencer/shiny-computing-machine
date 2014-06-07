@@ -47,8 +47,8 @@ slice.cmx: slice.ml
 slice.cmo: slice.ml
 	ocamlc $(OCC) -c slice.ml
 
-spell_checking.cmx: spell_checking.ml 
-	$(OC) $(OCOPT) -c spell_checking.ml 
+spell_checking.cmx: slice.cmx spell_checking.ml 
+	$(OC) $(OCOPT) -c $^
 
 glr_parser.cmx: glr_parser.ml
 	$(OC) $(OCOPT) -c glr_parser.ml

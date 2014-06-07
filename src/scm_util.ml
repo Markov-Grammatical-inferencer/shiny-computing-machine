@@ -6,6 +6,10 @@ let tau = 2.0 *. 4.0 *. atan 1.0;;
 let deg_to_rad x = x *. tau /. 360.;;
 let rad_to_deg x = x /. tau *. 360.;;
 
+let next_pow2 x =
+    let rec helper y acc =
+        if y = 0 then acc else helper (y/2) (acc*2) in
+    helper (x-1) 1;;
 let clamp lo hi x = max lo (min x hi);;
 let inplace fn xref = xref := (fn !xref);;
 

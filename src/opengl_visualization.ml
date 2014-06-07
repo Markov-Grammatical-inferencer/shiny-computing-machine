@@ -77,48 +77,53 @@ glEnable(GL_BLEND);
 glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 *)
-let apply_texture img =
+let setup_texture img =
     let tex_id = GlTex.gen_texture () in
+    fun () ->
     GlTex.bind_texture ~target:`texture_2d tex_id;
     let par = GlTex.parameter ~target:`texture_2d in
     par (`min_filter `nearest);
     par (`mag_filter `nearest);
-    par (`wrap_s `repeat);
-    par (`wrap_t `repeat);
+    par (`wrap_s `clamp);
+    par (`wrap_t `clamp);
     GlTex.image2d ~proxy: false ~level: 0 ~internal:3 ~border:false img;;
 
 let make_node_drawer str =
     let module Imgmake = Image_maker(GlTexImage) in
     let (w, h, x, y) = Imgmake.get_size_and_pos freemono_face str in
+    let (w, h) = (next_pow2 w, next_pow2 h) in
     let modifiable_img = GlTexImage.create w h in
     GlTexImage.fill_image modifiable_img (Graphics.rgb 0x40 0x40 0x40);
     Imgmake.draw_string_on_image modifiable_img freemono_face draw_rainbow str;
     let img = glpix_of_glteximage modifiable_img in
+    let apply_texture = setup_texture img in
+    let scale_factor = 10. in
+    let (w_f, h_f) = (float_of_int w) /. scale_factor, (float_of_int h) /. scale_factor in
     (fun w h x y z () ->
-        apply_texture img;
+        apply_texture ();
         GlDraw.begins `quads;
         List.iter (fun (x,y,z,u,v) ->
             GlTex.coord2 (u,v);
             GlDraw.vertex3 (x,y,z);
         ) [(x,y,z,0.,1.);(x,y+.h,z,0.,0.);(x+.w,y+.h,z,1.,0.);(x+.w,y,z,1.,1.)];
         GlDraw.ends ();
-    );;
+    ) w_f h_f, w_f, h_f;;
 
 let rec make_tree_drawer tr =
-    let (w,h) = (10.,10.) in
     let Node(node,subtrees) = tr in
-    let draw_cur_node = make_node_drawer node in
+    let (draw_cur_node, w, h) = make_node_drawer node in
     let (draw_subtree_list, subtree_widths) = List.unzip (List.map make_tree_drawer subtrees) in
     let total_subwidth = List.fold_left (+.) 0. subtree_widths in
+    let offset = ref 0. in
     (fun x y z () ->
-        draw_cur_node w h x y z ();
-        (*let offset = ref ((-.total_subwidth)/.2.) in*)
-        let offset = ref 0. in
+        offset := 0.;
+        draw_cur_node x y z ();
         List.iter2 (fun draw_subtree subtree_width ->
             draw_subtree (x +. !offset) (y -. (2. *. h)) z ();
+            Printf.printf "%f %f\n%!" subtree_width !offset;
             offset +.= subtree_width
         ) draw_subtree_list subtree_widths;
-    ), (2.*.(max w total_subwidth));;
+    ), (2.*.(max w !offset));;
 
 let with_opengl_context drawfn =
     ignore( Glut.init Sys.argv );
@@ -158,3 +163,4 @@ let show_parse_tree tr =
         with_opengl_context (draw_tree 0. 0. 0.);;
 
 show_parse_tree (Node("S",[Node("NP",[Node("NN",[Node("I",[])])]);Node("VP",[Node("VBZ",[Node("am",[])])])]));;
+(* with_opengl_context (fun () -> Glut.wireTeapot 1.);; *)
