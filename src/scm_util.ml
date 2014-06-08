@@ -16,6 +16,7 @@ let inplace fn xref = xref := (fn !xref);;
 let (+=) x a = inplace ((+) a) x;;
 let (+.=) x a = inplace ((+.) a) x;;
 
+let identity x = x;;
 let compose f g x = f (g x);;
 
 let string_map f str =
@@ -36,6 +37,7 @@ let get_b c = Int32.to_int                    (Int32.logand (Int32.of_int c) (In
 module List =
 struct
 include List
+let contains x = List.exists (fun elt -> elt = x)
 let zip l1 l2 = List.rev (List.fold_left2 (fun acc e1 e2 -> (e1,e2) :: acc) [] l1 l2);;
 let unzip l =
     let (rev_x, rev_y) =

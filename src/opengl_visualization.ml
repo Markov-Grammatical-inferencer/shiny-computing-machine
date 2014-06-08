@@ -113,7 +113,7 @@ let rec make_tree_drawer tr =
     let Node(node,subtrees) = tr in
     let (draw_cur_node, w, h) = make_node_drawer node in
     let (draw_subtree_list, subtree_widths) = List.unzip (List.map make_tree_drawer subtrees) in
-    let total_subwidth = List.fold_left (+.) 0. subtree_widths in
+    (* let total_subwidth = List.fold_left (+.) 0. subtree_widths in *)
     let offset = ref 0. in
     (fun x y z () ->
         offset := 0.;
