@@ -48,6 +48,29 @@ let get_ptable_entry table state lookahead = Hashtbl.find table (state,lookahead
 
 let balanced_paren_grammar = [(Nonterminal "S",[Terminal "(";Nonterminal "S";Terminal ")"]);(Nonterminal "S",[])];; (* Very verbose way of saying S -> "(" S ")" | "" *)
 
+(* from Programming Language Pragmatics - third edition , page 88 *)
+let simple_imperative_grammar =
+[
+Nonterminal "program", [Nonterminal "stmt_list"; Terminal "$$"];
+Nonterminal "stmt_list", [Nonterminal "stmt_list"; Nonterminal "stmt"];
+Nonterminal "stmt_list", [Nonterminal "stmt"];
+Nonterminal "stmt", [Terminal "id"; Terminal ":="; Nonterminal "expr"];
+Nonterminal "stmt", [Terminal "read"; Terminal "id"];
+Nonterminal "stmt", [Terminal "write"; Nonterminal "expr"];
+Nonterminal "expr", [Nonterminal "term"];
+Nonterminal "expr", [Nonterminal "expr"; Nonterminal "add_op"; Nonterminal "term"];
+Nonterminal "term", [Nonterminal "factor"];
+Nonterminal "term", [Nonterminal "term"; Nonterminal "mult_op"; Nonterminal "factor"];
+Nonterminal "factor", [Terminal "("; Nonterminal "expr"; Terminal ")"];
+Nonterminal "factor", [Terminal "id"];
+Nonterminal "factor", [Terminal "number"];
+Nonterminal "add_op", [Terminal "+"];
+Nonterminal "add_op", [Terminal "-"];
+Nonterminal "mult_op", [Terminal "*"];
+Nonterminal "mult_op", [Terminal "/"];
+];;
+
+
 module ExtendSet = functor (SetModule : Set.S) ->
 struct
 include SetModule
@@ -71,7 +94,7 @@ let rec set_closure (fn : elt -> elt list) set =
     
 end;;
 
-let lritem_of_production (lhs,rhs) = (lhs,rhs,[]);;
+let lritem_of_production (lhs,rhs) = (lhs,[],rhs);;
 
 (* example invokations:
 module WordParser = Glr_parser.Make(StringArray);;
@@ -92,3 +115,18 @@ let grammatical_closure : (elt grammar -> LRItemSet.t -> LRItemSet.t) = fun gram
 (* let make_table (production list -> elt Parse_table.t) = fun prods -> *)
     
 end;;
+
+(*
+#load "scm_util.cmo";;
+#load "glr_parser.cmo";;
+open Scm_util;;
+open Glr_parser;;
+module P = Make(StringArray);;
+module LRSet = P.LRItemSet;;
+let f = P.grammatical_closure simple_imperative_grammar;;
+let a = LRSet.of_list [lritem_of_production (List.hd simple_imperative_grammar)];;
+let b = f a;;
+LRSet.elements a;;
+LRSet.elements b;;
+
+*)
