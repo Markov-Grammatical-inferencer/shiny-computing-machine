@@ -144,4 +144,33 @@ object(self)
       List.iter (fun x->ignore(self#addcontext x (List.nth s i))) f;
       self#addcontext e (List.nth s i);
     done;
+
+    method serialize (s:string)=
+      let output=open_out s in 
+      let write_set:IntSet.t->out_channel->unit=
+	(fun x y->
+	 (*Write a set to the file *)
+	 Printf.fprintf y "%i " (IntSet.cardinal x);(*The number of words in the set*)
+	 IntSet.iter (fun x->Printf.fprintf y "%i " x) x;
+	 Printf.fprintf y "\n") in 
+      let write_word:string->word->out_channel->unit=
+	(fun s x y->
+	 Printf.fprintf y "%s %i " s x.id ;
+	 (*Write the string followed by the ID*)
+	 write_set x.ctx y) in 
+      let write_ctx:int->textual->out_channel->unit=
+	(fun id x y->
+	 let print_intf=Printf.fprintf y "%i" in 
+	 Printf.fprintf y "%i %i %i " id (List.length x.prec) (List.length x.follow);
+	 List.iter print_intf x.prec;
+	 List.iter print_intf x.follow;
+	 Printf.fprintf y "\n") in
+      Printf.fprintf output "%i\n%i\n" (Hashtbl.length words) (Hashtbl.length context);
+      Hashtbl.iter (fun x y->
+		  write_word x y output) words;
+      Hashtbl.iter (fun x y->
+		    write_ctx y x output) context; 
+      close_out output;(*close the file*)
+      ()
+           
 end;;

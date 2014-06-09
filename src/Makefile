@@ -50,12 +50,12 @@ slice.cmo: slice.ml
 spell_checking.cmx: slice.cmx spell_checking.ml 
 	$(OC) $(OCOPT) -c $^
 
-spell_checking.cmo:spell_checking.ml
+spell_checking.cmo: spell_checking.ml
 	ocamlc $(OCC) -c str.cma spell_checking.ml
 
-glr_parser.cmx: glr_parser.ml
+glr_parser.cmx: scm_util.cmx glr_parser.ml
 	$(OC) $(OCOPT) -c glr_parser.ml
-glr_parser.cmo: glr_parser.ml
+glr_parser.cmo: scm_util.cmo glr_parser.ml
 	ocamlc $(OCC) -c glr_parser.ml
 
 ../opengl_visualization: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.ml

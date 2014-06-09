@@ -132,7 +132,7 @@ let deserialize file=
     with End_of_file->close_in i) in 
   get_contents ();
   let extract_info=(fun x->
-		     Str.string_match (Str.regexp "\\([a-z]+\\) \\([0-9]+\\)") x 0;
+		     ignore(Str.string_match (Str.regexp "\\([a-z]+\\) \\([0-9]+\\)") x 0);
 		     (Str.matched_group 1 x),(int_of_string (Str.matched_group 2 x))) in 
   let values=List.map extract_info !lines in 
   List.iter (fun c->
