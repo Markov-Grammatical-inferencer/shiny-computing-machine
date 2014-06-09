@@ -70,30 +70,6 @@ Nonterminal "mult_op", [Terminal "*"];
 Nonterminal "mult_op", [Terminal "/"];
 ];;
 
-
-module ExtendSet = functor (SetModule : Set.S) ->
-struct
-include SetModule
-let of_list l = let sr = ref empty in List.iter (fun elem -> inplace (add elem) sr) l; !sr
-let map fn set =
-    let sr = ref empty in
-    iter (fun elem -> inplace (add (fn elem)) sr) set;
-    !sr
-
-let map_multi (fn : elt -> elt list) set =
-    let sr = ref empty in
-    List.iter (fun lst -> List.iter (fun elem -> inplace (add elem) sr) lst) (List.map fn (elements set));
-    !sr
-
-(* apply fn to each elem of set, add the results into the set, until there are no new items to add *)
-(* WARNING: not guarenteed to terminate. Among other things, attempting to find the closure of {0} via the function ((+) 1) will have a countably infinite runtime (sort of by definition).*)
-let rec set_closure (fn : elt -> elt list) set =
-    let elems_to_add = map_multi fn set in
-    let new_set = union set elems_to_add in
-    if (compare set new_set) = 0 then new_set else set_closure fn new_set
-    
-end;;
-
 let lritem_of_production (lhs,rhs) = (lhs,[],rhs);;
 
 (* example invokations:

@@ -46,3 +46,31 @@ let unzip l =
         ) ([],[]) l in
     (List.rev rev_x,List.rev rev_y)
 end;;
+
+module ExtendSet = functor (SetModule : Set.S) ->
+struct
+include SetModule
+let with_setref fn = let sr = ref empty in fn sr; !sr
+let of_list l = with_setref (fun sr -> List.iter (fun elem -> inplace (add elem) sr) l)
+let map fn set = with_setref (fun sr -> iter (fun elem -> inplace (add (fn elem)) sr) set)
+
+let map_multi (fn : elt -> elt list) set =
+    with_setref (fun sr -> List.iter (fun lst -> List.iter (fun elem -> inplace (add elem) sr) lst) (List.map fn (elements set)))
+
+(* apply fn to each elem of set, add the results into the set, until there are no new items to add *)
+(* WARNING: not guarenteed to terminate. Among other things, attempting to find the closure of {0} via the function ((+) 1) will have a countably infinite runtime (sort of by definition).*)
+let rec set_closure (fn : elt -> elt list) set =
+    let elems_to_add = map_multi fn set in
+    let new_set = union set elems_to_add in
+    if (compare set new_set) = 0 then new_set else set_closure fn new_set
+    
+end;;
+(*
+#load "scm_util.cmo";;
+open Scm_util;;
+module SS = ExtendSet(Set.Make(String));;
+let show = SS.elements;;
+let a = SS.of_list ["a";"b";"c";"d"];;
+let b = SS.map (fun e -> "prefix_" ^ e) a;;
+let c = SS.map_multi (fun e -> [e^"0";e^"1";e^"2"]) b;;
+*)
