@@ -46,3 +46,44 @@ let unzip l =
         ) ([],[]) l in
     (List.rev rev_x,List.rev rev_y)
 end;;
+
+(**
+Contains the accumulator module and associated types.
+ *)
+module Accumulator=
+struct
+
+module type Compare=
+  sig
+    type t
+    val compare: t * t -> bool (**Whatever values are given by this, it is correct to assume that it will require the first argument to be  more exactly what predicate you are testing.*)
+  end;;
+module type Accum= (** The signature of the accumulator class*)
+  sig
+    type elem
+    type acc
+    val accumulate:elem->unit
+    val empty:elem->acc
+  end;;
+
+module Make (E1:Compare)=(** A module that implements accumulator for the type (E1)*)
+  struct
+    type elem=E1.t
+    type acc=Non of elem|None
+    let accumulate (a:elem) (ac:acc)=
+      match ac with 
+	Non (b)->
+	if (E1.compare (a, b)) then
+	  Non (b)
+	else
+	  Non (a)
+      |None->
+	Non (a)
+
+    let empty ()=
+      None
+  end;;
+      
+					    
+    
+end;;
