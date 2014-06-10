@@ -22,16 +22,6 @@ let apply_camera_data : (float ref camera_data -> unit) = fun cd ->
     GlMat.translate ~x: (-.cd.xpos.contents) ~y: (-.cd.ypos.contents) ~z: (cd.zpos.contents) ();
     ();;
 
-let key_press_handler_generator : ((int ref * int ref) -> (key:int -> x:int -> y:int -> unit)) = fun input_tuple ->
-    fun ~key ~x ~y ->
-        (*Printf.printf "Key %d, %d, %d\n%!" key x y;*)
-        let (keyx, keyy) = input_tuple in
-        if (key = Char.code 'a') then keyx += (-1);
-        if (key = Char.code 'd') then keyx += 1;
-        if (key = Char.code 'w') then keyy += (-1);
-        if (key = Char.code 's') then keyy += 1;
-        ();;
-
 let move_delta = 1.0;;
 let rotate_delta = 0.1;;
 
@@ -40,22 +30,21 @@ let move_in_direction dir cd =
     cd.zpos +.= (move_delta *. (sin dir));
     ();;
 
+let incdec_by_key converter amount varref deckey inckey key =
+    if (converter deckey = key) then varref +.= (-.amount);
+    if (converter inckey = key) then varref +.= amount;;
+
 let camera_key_press_handler : ((float ref camera_data) -> (key:int -> x:int -> y:int -> unit)) = fun cd ->
     fun ~key ~x ~y ->
         if (key = Char.code 'a') then move_in_direction (cd.lrrot.contents +. (tau *. 0.50)) cd;
         if (key = Char.code 'd') then move_in_direction (cd.lrrot.contents +. (tau *. 0.00)) cd;
         if (key = Char.code 'w') then move_in_direction (cd.lrrot.contents +. (tau *. 0.25)) cd;
         if (key = Char.code 's') then move_in_direction (cd.lrrot.contents +. (tau *. 0.75)) cd;
-        if (key = Char.code 'q') then cd.ypos +.= (-1. *. move_delta);
-        if (key = Char.code 'e') then cd.ypos +.= (1. *. move_delta);
-
-        if (key = Char.code 'i') then cd.udrot +.= (1. *. rotate_delta);
-        if (key = Char.code 'k') then cd.udrot +.= (-1. *. rotate_delta);
+        let f = incdec_by_key Char.code in
+        f move_delta cd.ypos 'q' 'e' key;
+        f rotate_delta cd.udrot 'k' 'i' key;
         inplace (clamp ((-.tau) /. 4.) (tau /. 4.)) cd.udrot;
-        if (key = Char.code 'j') then cd.lrrot +.= (1. *. rotate_delta);
-        if (key = Char.code 'l') then cd.lrrot +.= (-1. *. rotate_delta);
-        (* Printf.printf "%f,%f,%f,%f,%f\n%!" cd.xpos.contents cd.ypos.contents cd.zpos.contents cd.lrrot.contents cd.udrot.contents; *)
-        ();;
+        f rotate_delta cd.lrrot 'l' 'j' key;;
 
 (* successful combination of openGL calls to enable textures translated from a previous project of mine: https://github.com/aweinstock314/correspondence_problem_demo/ *)
 (*
