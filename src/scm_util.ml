@@ -59,11 +59,12 @@ let map_multi (fn : elt -> elt list) set =
 
 (* apply fn to each elem of set, add the results into the set, until there are no new items to add *)
 (* WARNING: not guarenteed to terminate. Among other things, attempting to find the closure of {0} via the function ((+) 1) will have a countably infinite runtime (sort of by definition).*)
-let rec set_closure (fn : elt -> elt list) set =
-    let elems_to_add = map_multi fn set in
-    let new_set = union set elems_to_add in
-    if (compare set new_set) = 0 then new_set else set_closure fn new_set
-    
+let set_closure (fn : elt -> elt list) set =
+    let rec helper set acc =
+        let elems_to_add = map_multi fn set in
+        let new_set = union elems_to_add acc in
+        if (compare acc new_set) = 0 then new_set else helper elems_to_add new_set
+    in helper set set
 end;;
 (*
 #load "scm_util.cmo";;
