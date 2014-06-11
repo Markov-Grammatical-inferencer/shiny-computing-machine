@@ -9,6 +9,8 @@ open Font_wrapper;;
 #load "camlimages_freetype.cma";;
 #load "scm_util.cmo";;
 #load "font_wrapper.cmo";;
+#load "opengl_visualization.cmo";;
+open Opengl_visualization;;
 *)
 
 type 'a camera_data = { xpos : 'a; ypos : 'a; zpos : 'a; lrrot : 'a; udrot : 'a };;
@@ -68,6 +70,7 @@ glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 let setup_texture img =
     let tex_id = GlTex.gen_texture () in
     fun () ->
+    Gl.enable `texture_2d;
     GlTex.bind_texture ~target:`texture_2d tex_id;
     let par = GlTex.parameter ~target:`texture_2d in
     par (`min_filter `nearest);
@@ -97,6 +100,24 @@ let make_textrect_drawer face drawer str =
         GlDraw.ends ();
     ) w_f h_f, w_f, h_f;;
 
+let apply_polar_movement radius theta (x,y) = ((x +. (radius *. (cos theta))),(y +. (radius *. (sin theta))));;
+
+let draw_rectangular_line w (x1,y1,z1) (x2,y2,z2) (r,g,b,a) =
+    Gl.disable `texture_2d;
+    GlDraw.begins `quads;
+    let w2 = w/.2. in
+    let theta = (tau /. 4.) +. atan2 (y2-.y1) (x2-.x1) in (* the width is applied perpendicular to the length of the line *)
+    let f r t x y z = let (a,b) = apply_polar_movement r t (x,y) in (a,b,z) in
+    List.iter (fun (x,y,z) ->
+        GlDraw.color ~alpha:a (r,g,b);
+        GlDraw.vertex3 (x,y,z);
+    ) [(f (0.-.w2) theta x1 y1 z1);
+       (f (0.+.w2) theta x1 y1 z1);
+       (f (0.+.w2) theta x2 y2 z2);
+       (f (0.-.w2) theta x2 y2 z2)];
+    (* [(x1 -. w2,y1,z1); (x1 +. w2,y1,z1); (x2 +. w2,y2,z2); (x2 -. w2,y2,z2)]; *)
+    GlDraw.ends ();;
+
 let with_opengl_context title drawfn =
     ignore( Glut.init Sys.argv );
     Glut.initDisplayMode ~double_buffer:true ();
@@ -113,8 +134,6 @@ let with_opengl_context title drawfn =
         Gl.enable `blend;
         GlFunc.blend_func ~src:`src_alpha ~dst:`one_minus_src_alpha;
         GlClear.clear [`color;`depth];
-        Gl.enable `texture_2d;
-        GlClear.clear [ `color ];
         GlMat.mode `projection;
         GlMat.load_identity ();
         GlMat.frustum ~x: (-1.,1.) ~y: (-1.,1.) ~z: (0.5,100.);
@@ -130,3 +149,4 @@ let with_opengl_context title drawfn =
         Glut.mainLoop ();;
 
 (* with_opengl_context "Teapot" (fun () -> Glut.wireTeapot 1.);; *)
+(* with_opengl_context "Line" (fun () -> draw_rectangular_line 1. (0.,0.,0.) (5.,10.,(-1.)) (1.,1.,1.,1.));; *)
