@@ -102,17 +102,16 @@ let rec make_tree_drawer tr =
     let Node(node,subtrees) = tr in
     let (draw_cur_node, w, h) = make_node_drawer node in
     let (draw_subtree_list, subtree_widths) = List.unzip (List.map make_tree_drawer subtrees) in
-    (* let total_subwidth = List.fold_left (+.) 0. subtree_widths in *)
-    let offset = ref 0. in
+    let total_subwidth = List.fold_left (max) 0. subtree_widths in
     (fun x y z () ->
-        offset := 0.;
+        let offset = ref 0. in
         draw_cur_node x y z ();
         List.iter2 (fun draw_subtree subtree_width ->
             draw_subtree (x +. !offset) (y -. (2. *. h)) z ();
-            Printf.printf "%f %f\n%!" subtree_width !offset;
+            (* Printf.printf "%f %f %f\n%!" subtree_width !offset w; *)
             offset +.= subtree_width
         ) draw_subtree_list subtree_widths;
-    ), (2.*.(max w !offset));;
+    ), (1.+.(max w total_subwidth));;
 
 let with_opengl_context drawfn =
     ignore( Glut.init Sys.argv );
