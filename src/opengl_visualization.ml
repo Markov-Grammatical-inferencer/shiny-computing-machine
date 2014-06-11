@@ -1,6 +1,5 @@
 open Scm_util;;
 open Font_wrapper;;
-open Glr_parser;;
 
 (*
 #load "graphics.cma";;
@@ -77,13 +76,13 @@ let setup_texture img =
     par (`wrap_t `clamp);
     GlTex.image2d ~proxy: false ~level: 0 ~internal:3 ~border:false img;;
 
-let make_node_drawer str =
+let make_textrect_drawer face drawer str =
     let module Imgmake = Image_maker(GlTexImage) in
-    let (w, h, x, y) = Imgmake.get_size_and_pos freemono_face str in
+    let (w, h, x, y) = Imgmake.get_size_and_pos face str in
     let (w, h) = (next_pow2 w, next_pow2 h) in
     let modifiable_img = GlTexImage.create w h in
     GlTexImage.fill_image modifiable_img (Graphics.rgb 0x40 0x40 0x40);
-    Imgmake.draw_string_on_image modifiable_img freemono_face draw_rainbow str;
+    Imgmake.draw_string_on_image modifiable_img face drawer str;
     let img = glpix_of_glteximage modifiable_img in
     let apply_texture = setup_texture img in
     let scale_factor = 10. in
@@ -98,25 +97,10 @@ let make_node_drawer str =
         GlDraw.ends ();
     ) w_f h_f, w_f, h_f;;
 
-let rec make_tree_drawer tr =
-    let Node(node,subtrees) = tr in
-    let (draw_cur_node, w, h) = make_node_drawer node in
-    let (draw_subtree_list, subtree_widths) = List.unzip (List.map make_tree_drawer subtrees) in
-    let total_subwidth = List.fold_left (max) 0. subtree_widths in
-    (fun x y z () ->
-        let offset = ref 0. in
-        draw_cur_node x y z ();
-        List.iter2 (fun draw_subtree subtree_width ->
-            draw_subtree (x +. !offset) (y -. (2. *. h)) z ();
-            (* Printf.printf "%f %f %f\n%!" subtree_width !offset w; *)
-            offset +.= subtree_width
-        ) draw_subtree_list subtree_widths;
-    ), (1.+.(max w total_subwidth));;
-
-let with_opengl_context drawfn =
+let with_opengl_context title drawfn =
     ignore( Glut.init Sys.argv );
     Glut.initDisplayMode ~double_buffer:true ();
-    ignore (Glut.createWindow ~title:"Parse Tree");
+    ignore (Glut.createWindow ~title:title);
     let cd = make_camera_data (fun () -> ref 0.) in
     cd.xpos := 2.5; cd.ypos := 0.5; cd.zpos := -1.;
     let render fn () =
@@ -145,10 +129,4 @@ let with_opengl_context drawfn =
     Glut.idleFunc ~cb:(Some Glut.postRedisplay);
         Glut.mainLoop ();;
 
-
-let show_parse_tree tr =
-    let (draw_tree,_) = make_tree_drawer tr in
-        with_opengl_context (draw_tree 0. 0. 0.);;
-
-show_parse_tree (Node("S",[Node("NP",[Node("NN",[Node("I",[])])]);Node("VP",[Node("VBZ",[Node("am",[])])])]));;
-(* with_opengl_context (fun () -> Glut.wireTeapot 1.);; *)
+(* with_opengl_context "Teapot" (fun () -> Glut.wireTeapot 1.);; *)

@@ -6,7 +6,7 @@ GRAPHICS_DIRS=-I +lablgl -I +camlimages
 GRAPHICS_LIBS_COMPILED=lablgl.cmxa lablglut.cmxa graphics.cmxa camlimages_core.cmxa camlimages_freetype.cmxa 
 GRAPHICS_LIBS_BYTECODE=lablgl.cma lablglut.cma graphics.cma camlimages_core.cma camlimages_freetype.cma 
 
-all: ../SCM ../opengl_visualization libs
+all: ../SCM ../parse_tree_drawer libs
 
 libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo
 	touch libs #dummy file so that make gets the right timestamp
@@ -58,13 +58,14 @@ glr_parser.cmx: scm_util.cmx glr_parser.ml
 glr_parser.cmo: scm_util.cmo glr_parser.ml
 	ocamlc $(OCC) -c glr_parser.ml
 
-../opengl_visualization: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.ml
-	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../opengl_visualization
-opengl_visualization.cmo: scm_util.cmo glr_parser.cmo font_wrapper.cmo opengl_visualization.ml
+../parse_tree_drawer: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.cmx parse_tree_drawer.ml
+	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../parse_tree_drawer
+
+opengl_visualization.cmx: scm_util.cmx font_wrapper.cmx opengl_visualization.ml
+	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -c
+opengl_visualization.cmo: scm_util.cmo font_wrapper.cmo opengl_visualization.ml
 	ocamlc $(OCC) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_BYTECODE) $^ -c
 
-../font_wrapper: scm_util.cmx font_wrapper.ml
-	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../font_wrapper
 font_wrapper.cmx: scm_util.cmx font_wrapper.ml
 	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -c
 font_wrapper.cmo: scm_util.cmo font_wrapper.ml
