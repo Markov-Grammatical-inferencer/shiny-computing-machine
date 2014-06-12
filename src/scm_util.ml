@@ -12,6 +12,7 @@ let next_pow2 x =
     helper (x-1) 1;;
 let clamp lo hi x = max lo (min x hi);;
 let inplace fn xref = xref := (fn !xref);;
+let inplace2 fn (xr1,xr2) = let (a,b) = fn (!xr1,!xr2) in xr1 := a; xr2 := b;;
 
 let (+=) x a = inplace ((+) a) x;;
 let (+.=) x a = inplace ((+.) a) x;;

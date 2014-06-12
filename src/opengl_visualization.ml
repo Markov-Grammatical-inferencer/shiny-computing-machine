@@ -26,10 +26,7 @@ let apply_camera_data : (float ref camera_data -> unit) = fun cd ->
 let move_delta = 1.0;;
 let rotate_delta = 0.1;;
 
-let move_in_direction dir cd =
-    cd.xpos +.= (move_delta *. (cos dir));
-    cd.zpos +.= (move_delta *. (sin dir));
-    ();;
+let apply_polar_movement radius theta (x,y) = ((x +. (radius *. (cos theta))),(y +. (radius *. (sin theta))));;
 
 let incdec_by_key converter amount varref deckey inckey key =
     if (converter deckey = key) then varref +.= (-.amount);
@@ -37,10 +34,11 @@ let incdec_by_key converter amount varref deckey inckey key =
 
 let camera_key_press_handler : ((float ref camera_data) -> (key:int -> x:int -> y:int -> unit)) = fun cd ->
     fun ~key ~x ~y ->
-        if (key = Char.code 'a') then move_in_direction (cd.lrrot.contents +. (tau *. 0.50)) cd;
-        if (key = Char.code 'd') then move_in_direction (cd.lrrot.contents +. (tau *. 0.00)) cd;
-        if (key = Char.code 'w') then move_in_direction (cd.lrrot.contents +. (tau *. 0.25)) cd;
-        if (key = Char.code 's') then move_in_direction (cd.lrrot.contents +. (tau *. 0.75)) cd;
+        let move_in_direction theta = inplace2 (apply_polar_movement move_delta (cd.lrrot.contents +. (tau *. theta))) (cd.xpos,cd.zpos) in
+        if (key = Char.code 'a') then move_in_direction 0.50;
+        if (key = Char.code 'd') then move_in_direction 0.00;
+        if (key = Char.code 'w') then move_in_direction 0.25;
+        if (key = Char.code 's') then move_in_direction 0.75;
         let f = incdec_by_key Char.code in
         f move_delta cd.ypos 'q' 'e' key;
         f rotate_delta cd.udrot 'k' 'i' key;
@@ -99,8 +97,6 @@ let make_textrect_drawer face drawer str =
         ) [(x,y,z,0.,1.);(x,y+.h,z,0.,0.);(x+.w,y+.h,z,1.,0.);(x+.w,y,z,1.,1.)];
         GlDraw.ends ();
     ) w_f h_f, w_f, h_f;;
-
-let apply_polar_movement radius theta (x,y) = ((x +. (radius *. (cos theta))),(y +. (radius *. (sin theta))));;
 
 let draw_rectangular_line w (x1,y1,z1) (x2,y2,z2) (r,g,b,a) =
     Gl.disable `texture_2d;
