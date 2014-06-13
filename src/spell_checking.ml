@@ -159,7 +159,6 @@ let correct word=
   Stringset.iter (fun x->
 		  if Hashtbl.mem modelling x then 
 		    begin
-		      print_endline "checking inner thing";
 		      let j=Hashtbl.find modelling x in 
 		      if j>(!mx) then 
 			begin 
