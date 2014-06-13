@@ -57,7 +57,11 @@ glr_parser.cmx: scm_util.cmx glr_parser.ml
 	$(OC) $(OCOPT) -c glr_parser.ml
 glr_parser.cmo: scm_util.cmo glr_parser.ml
 	ocamlc $(OCC) -c glr_parser.ml
-
+#produce the editor
+editor.cmx: editor.ml
+	$(OC) $(OCOPT) -I ../ocaml-curses/ curses.cmxa editor.ml
+editor.cmo: editor.ml
+	ocamlc $(OCC) -I ../ocaml-curses/ curses.cma editor.ml -o editor
 ../parse_tree_drawer: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.cmx parse_tree_drawer.ml
 	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../parse_tree_drawer
 
