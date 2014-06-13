@@ -36,7 +36,7 @@ let string_of = identity
 end;;
 let simple_tokenize = string_map identity;;
 
-type 'a symbol = Terminal of 'a | Nonterminal of string;;
+type 'a symbol = Start_symbol | Terminal of 'a | Nonterminal of string;;
 type 'a production = 'a symbol * 'a symbol list;; (* (lhs, rhs), not handling super-CFGs *)
 type 'a lr_item = 'a symbol * 'a symbol list * 'a symbol list;; (* (lhs, rhs_before_dot, rhs_after_dot) *)
 type 'a parse_action = Shift of int * 'a symbol | Reduce of 'a production | Accept;;
@@ -51,6 +51,7 @@ let balanced_paren_grammar = [(Nonterminal "S",[Terminal "(";Nonterminal "S";Ter
 (* from Programming Language Pragmatics - third edition , page 88 *)
 let simple_imperative_grammar =
 [
+Start_symbol, [Nonterminal "program"];
 Nonterminal "program", [Nonterminal "stmt_list"; Terminal "$$"];
 Nonterminal "stmt_list", [Nonterminal "stmt_list"; Nonterminal "stmt"];
 Nonterminal "stmt_list", [Nonterminal "stmt"];
@@ -82,13 +83,32 @@ type t = TS.t
 type elt = TS.elt
 module TokenSet = Set.Make(struct type t = elt let compare = TS.compare end)
 module LRItemSet = ExtendSet(Set.Make(struct type t = elt lr_item let compare = compare end))
+type parser_automaton_state = PA_State of (elt symbol, parser_automaton_state) Hashtbl.t
+
 let grammatical_closure : (elt grammar -> LRItemSet.t -> LRItemSet.t) = fun gram ->
-    LRItemSet.set_closure (fun (lhs, rhs1, rhs2) ->
-        match rhs2 with
-        | Nonterminal(nt) :: _ -> List.map lritem_of_production (List.find_all (fun (prod_lhs,_) -> prod_lhs = Nonterminal(nt)) gram)
+    let lritems_starting_with sym = List.map lritem_of_production (List.find_all (fun (prod_lhs,_) -> prod_lhs = sym) gram) in
+    LRItemSet.set_closure (fun (lhs, rhs1, rhs2) -> match rhs2 with
+        | Nonterminal(nt) :: _ -> lritems_starting_with (Nonterminal(nt))
         | _ -> [(lhs, rhs1, rhs2)])
-        
-(* let make_table (production list -> elt Parse_table.t) = fun prods -> *)
+
+let make_parser_state gram set =
+    (* let automaton_state : parser_automaton_state = PA_State(Hashtbl.create 0) in *)
+    let h : (elt symbol, LRItemSet.t) Hashtbl.t = Hashtbl.create 0 in
+    let hget tbl key = try Hashtbl.find tbl key with Not_found -> LRItemSet.empty in
+    LRItemSet.iter (fun (lhs, rhs1, rhs2) -> match rhs2 with
+        | rhs2hd :: rhs2tl -> (match rhs2hd with
+            | Nonterminal(nt) as sym -> Hashtbl.add h sym (LRItemSet.union (hget h sym) (LRItemSet.of_list [(lhs, rhs1@[rhs2hd], rhs2tl)]))
+            | Terminal(t) as sym -> Hashtbl.add h sym (LRItemSet.union (hget h sym) (LRItemSet.of_list [(lhs, rhs1@[rhs2hd], rhs2tl)]))
+            | Start_symbol -> ())
+        | [] -> ()
+    ) set;
+    Hashtbl.map (fun k v -> (k, (grammatical_closure gram v))) h
+
+let make_initial_parser_state gram = 
+    let start_set = (grammatical_closure gram (LRItemSet.of_list [lritem_of_production (List.find (fun (lhs,_) -> lhs = Start_symbol) gram)])) in
+    make_parser_state gram start_set
+
+(* let make_parser : (elt grammar -> (t -> elt tree)) = fun gram -> *)
     
 end;;
 

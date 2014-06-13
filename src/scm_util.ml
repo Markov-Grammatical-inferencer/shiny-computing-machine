@@ -48,6 +48,16 @@ let unzip l =
     (List.rev rev_x,List.rev rev_y)
 end;;
 
+module Hashtbl =
+struct
+include Hashtbl
+let map fn tbl =
+    let new_tbl = create 0 in iter (fun k v -> 
+        let (out_key, out_val) = (fn k v) in
+        add new_tbl out_key out_val
+    ) tbl; new_tbl
+end;;
+
 module ExtendSet = functor (SetModule : Set.S) ->
 struct
 include SetModule

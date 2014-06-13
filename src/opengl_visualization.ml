@@ -34,7 +34,7 @@ let incdec_by_key converter amount varref deckey inckey key =
 
 let camera_key_press_handler : ((float ref camera_data) -> (key:int -> x:int -> y:int -> unit)) = fun cd ->
     fun ~key ~x ~y ->
-        let move_in_direction theta = inplace2 (apply_polar_movement move_delta (cd.lrrot.contents +. (tau *. theta))) (cd.xpos,cd.zpos) in
+        let move_in_direction theta = inplace2 (apply_polar_movement move_delta (!(cd.lrrot) +. (tau *. theta))) (cd.xpos,cd.zpos) in
         if (key = Char.code 'a') then move_in_direction 0.50;
         if (key = Char.code 'd') then move_in_direction 0.00;
         if (key = Char.code 'w') then move_in_direction 0.25;
