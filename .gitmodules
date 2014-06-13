@@ -1,6 +1,3 @@
-[submodule "src/ocaml-curses"]
-	path = src/ocaml-curses
-	url = https://github.com/sghost/ocaml-curses
 [submodule "ocaml-curses"]
 	path = ocaml-curses
 	url = https://github.com/sghost/ocaml-curses
