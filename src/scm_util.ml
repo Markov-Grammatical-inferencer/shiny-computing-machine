@@ -61,12 +61,13 @@ end;;
 module ExtendSet = functor (SetModule : Set.S) ->
 struct
 include SetModule
-let with_setref fn = let sr = ref empty in fn sr; !sr
-let of_list l = with_setref (fun sr -> List.iter (fun elem -> inplace (add elem) sr) l)
-let map fn set = with_setref (fun sr -> iter (fun elem -> inplace (add (fn elem)) sr) set)
+let of_list = List.fold_left (fun acc elem -> add elem acc) empty
+let map fn = fold (fun elem -> add (fn elem)) empty
 
-let map_multi (fn : elt -> elt list) set =
-    with_setref (fun sr -> List.iter (fun lst -> List.iter (fun elem -> inplace (add elem) sr) lst) (List.map fn (elements set)))
+(* TODO: efficiency-test imperative vs functional versions of map_multi *)
+(* let with_setref fn = let sr = ref empty in fn sr; !sr *)
+(* let map_multi (fn : elt -> elt list) set = with_setref (fun sr -> List.iter (fun lst -> List.iter (fun elem -> inplace (add elem) sr) lst) (List.map fn (elements set))) *)
+let map_multi fn = fold (fun elem -> union (of_list (fn elem))) empty
 
 (* apply fn to each elem of set, add the results into the set, until there are no new items to add *)
 (* WARNING: not guarenteed to terminate. Among other things, attempting to find the closure of {0} via the function ((+) 1) will have a countably infinite runtime (sort of by definition).*)
