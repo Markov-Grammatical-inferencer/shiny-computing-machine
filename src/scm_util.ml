@@ -56,18 +56,20 @@ let map fn tbl =
         let (out_key, out_val) = (fn k v) in
         add new_tbl out_key out_val
     ) tbl; new_tbl
+
+let list_of tbl = Hashtbl.fold (fun k v acc -> (k,v) :: acc) tbl []
 end;;
 
 module ExtendSet = functor (SetModule : Set.S) ->
 struct
 include SetModule
 let of_list = List.fold_left (fun acc elem -> add elem acc) empty
-let map fn = fold (fun elem -> add (fn elem)) empty
+let map fn set = fold (fun elem -> add (fn elem)) set empty
 
 (* TODO: efficiency-test imperative vs functional versions of map_multi *)
 (* let with_setref fn = let sr = ref empty in fn sr; !sr *)
 (* let map_multi (fn : elt -> elt list) set = with_setref (fun sr -> List.iter (fun lst -> List.iter (fun elem -> inplace (add elem) sr) lst) (List.map fn (elements set))) *)
-let map_multi fn = fold (fun elem -> union (of_list (fn elem))) empty
+let map_multi fn set = fold (fun elem -> union (of_list (fn elem))) set empty
 
 (* apply fn to each elem of set, add the results into the set, until there are no new items to add *)
 (* WARNING: not guarenteed to terminate. Among other things, attempting to find the closure of {0} via the function ((+) 1) will have a countably infinite runtime (sort of by definition).*)
