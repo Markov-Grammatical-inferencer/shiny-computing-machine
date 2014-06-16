@@ -1,5 +1,65 @@
 open Curses;;
 type direction=Up|Down|Left|Right;;
+class virtual editor_mode=
+	object(self)
+		method virtual display_character:int->unit
+		method virtual move_after:unit->unit
+		method virtual get_mode_name:unit->string
+		method move_relative (dy,dx)=
+		  let (y,x)=getyx (stdscr ()) in 
+		  move (y+dy) (x+dx)
+	end;;
+class text_mode=
+object(self)
+	inherit editor_mode
+	method display_character (i:int)=
+	  ignore(addch i)
+	method move_after ()=
+	  self#move_relative (0,1);
+	  ()
+
+	method get_mode_name ()=
+	  "Text"
+end;;
+
+class funge_mode=
+object(self)
+	inherit editor_mode
+	val mutable dx=1
+	val mutable dy=0		 
+	method display_character (i:int)=
+	  if i=(Char.code ("v".[0])) then 
+	    begin
+	      attr_on 1;
+	      dy<-1;
+	      dx<-0
+	    end;
+	  if i=(Char.code (">".[0])) then
+	    begin
+	      attr_on 1;
+	      dy<-0;
+	      dx<-1;
+	    end;
+	  if i=(Char.code ("<".[0])) then 
+	    begin
+	      attr_on 1;
+	      dy<-0;
+	      dx<- -1;
+	    end;
+	  if i=(Char.code ("^".[0])) then
+	    begin
+	      attr_on 1;
+	      dy<- -1;
+	      dx<-0;
+	    end;
+	  ignore( addch i)
+
+	method move_after ()=
+	  ignore(self#move_relative (dy,dx))
+	method get_mode_name ()="Befunge"
+	initializer ignore(init_pair 1 Color.cyan Color.black;
+			  init_pair 2 Color.yellow Color.black)
+end;;
 class editor=
 object(self)
 	val mutable contents:(int*int,char) Hashtbl.t=Hashtbl.create 10
@@ -29,7 +89,8 @@ object(self)
 	    ignore(self#movecursor Down)
 	  |x when x=Keys.backspace||
 		    x=Keys.ic->
-	    ignore(self#movecursor Left)
+	    ignore(self#movecursor Left);
+	    ignore(delch())
 	  |x->try
 	       if (Char.escaped (Char.chr x))="^?" then
 		 self#handlecursor Keys.left
@@ -57,6 +118,7 @@ end;;
 let ()=
   initscr();
   let j=new editor in
+  start_color ();
   keypad (stdscr ())  true;
   ignore(noecho ());
   try
