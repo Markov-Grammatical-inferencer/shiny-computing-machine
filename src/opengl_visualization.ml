@@ -26,8 +26,6 @@ let apply_camera_data : (float ref camera_data -> unit) = fun cd ->
 let move_delta = 1.0;;
 let rotate_delta = 0.1;;
 
-let apply_polar_movement radius theta (x,y) = ((x +. (radius *. (cos theta))),(y +. (radius *. (sin theta))));;
-
 let incdec_by_key converter amount varref deckey inckey key =
     if (converter deckey = key) then varref +.= (-.amount);
     if (converter inckey = key) then varref +.= amount;;

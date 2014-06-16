@@ -6,7 +6,7 @@ GRAPHICS_DIRS=-I +lablgl -I +camlimages
 GRAPHICS_LIBS_COMPILED=lablgl.cmxa lablglut.cmxa graphics.cmxa camlimages_core.cmxa camlimages_freetype.cmxa 
 GRAPHICS_LIBS_BYTECODE=lablgl.cma lablglut.cma graphics.cma camlimages_core.cma camlimages_freetype.cma 
 
-all: ../SCM ../parse_tree_drawer libs
+all: ../SCM ../parse_tree_drawer libs ../set_map_multi_timing_test
 
 libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo
 	touch libs #dummy file so that make gets the right timestamp
@@ -75,5 +75,7 @@ font_wrapper.cmx: scm_util.cmx font_wrapper.ml
 font_wrapper.cmo: scm_util.cmo font_wrapper.ml
 	ocamlc $(OCC) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_BYTECODE) $^ -c
 
+../set_map_multi_timing_test: scm_util.cmx set_map_multi_timing_test.ml
+	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o $@
 clean:
 	rm *.cmi *.cmx *.cmo *.annot *.o

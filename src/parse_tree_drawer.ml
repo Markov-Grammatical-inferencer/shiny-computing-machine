@@ -27,4 +27,17 @@ let show_parse_tree tr =
     let (draw_tree,_) = make_tree_drawer tr in
         with_opengl_context "Parse Tree" (draw_tree 0. 0. 0.);;
 
-show_parse_tree (Node("S",[Node("NP",[Node("NN",[Node("I",[]);Node(".",[])])]);Node("VP",[Node("VBZ",[Node("am",[])])])]));;
+show_parse_tree
+(Node("S",
+    [Node("NP",
+        [Node("NN",
+            [Node("I",[]);
+            Node(".",[])]
+        )]
+    );
+    Node("VP",
+        [Node("VBZ",
+            [Node("am",[])]
+        )]
+    )]
+));;
