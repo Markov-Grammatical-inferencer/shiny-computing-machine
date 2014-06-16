@@ -71,6 +71,17 @@ Nonterminal "mult_op", [Terminal "*"];
 Nonterminal "mult_op", [Terminal "/"];
 ];;
 
+(* http://en.wikipedia.org/wiki/LR_parser *)
+let simple_operator_grammar =
+[
+Start_symbol, [Nonterminal "E"];
+Nonterminal "E", [Nonterminal "E"; Terminal "*"; Nonterminal "B"];
+Nonterminal "E", [Nonterminal "E"; Terminal "+"; Nonterminal "B"];
+Nonterminal "E", [Nonterminal "B"];
+Nonterminal "B", [Terminal "0"];
+Nonterminal "B", [Terminal "1"];
+];;
+
 let lritem_of_production (lhs,rhs) = (lhs,[],rhs);;
 
 (* example invokations:
@@ -111,6 +122,16 @@ let make_initial_parser_state gram =
 (* let make_parser : (elt grammar -> (t -> elt tree)) = fun gram -> *)
     
 end;;
+
+(*
+#load "scm_util.cmo";;
+#load "glr_parser.cmo";;
+open Scm_util;;
+open Glr_parser;;
+module P = Make(StringArray);;
+open P;;
+
+*)
 
 (*
 #load "scm_util.cmo";;
