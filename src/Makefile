@@ -28,8 +28,8 @@ ngramdisplay.cmx: disambiguator.cmx ngramdisplay.ml
 %.cmx: %.ml
 	ocamlopt $(OCOPT) -c $<
 
-disambiguator.cmx: slice.cmx
-disambiguator.cmo: slice.cmo
+disambiguator.cmx: sexprparse.cmx slice.cmx
+disambiguator.cmo: sexprparse.cmo slice.cmo
 
 spell_checking.cmx: slice.cmx
 spell_checking.cmo: spell_checking.ml

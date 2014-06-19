@@ -1,11 +1,43 @@
 open Slice;;
-module IntSet=Set.Make(struct 
+open Sexprparse;;(*for the Content datatype*)
+module IntSet=
+struct 
+  include  Set.Make(struct 
 			let compare=Pervasives.compare 
 			type t=int
-		      end);; 
+		      end)
+  let to_SExpression (i:t)=
+    let t=ref None in 
+    List.iter (fun x->
+	       t:=Number (x,!t)) (elements i);
+    !t
+  let from_sexpression (c:content)=
+    (**
+     * Turn an s-expression into an ordered set. should be plenty inefficient due to the fact that the elements are in reverse order now.
+     *)
+    let t=ref c in
+    let q=ref empty in (*The empty set which will soon be populated*)
+    while not (!t = None) do
+      (match !t with 
+       Sub (_,_)->()
+       |Id (_,_)->()
+       |Number (x,y)->
+	q:=add x !q;
+	t:=y;
+      |None->());
+    done;
+    !q
+      
+end;;
 
 type textual={prec:int list;follow:int list};;
 type word={id:int;ctx:IntSet.t};;
+let sexpression_of_word (s:string) (w:word)=
+  let t=ref None in 
+  t:=Number (w.id,(Sub ((IntSet.to_SExpression w.ctx),None)));
+  t:=Id (s,!t);
+  !t;;
+
 (*
 Generate sub contexts based upon the extant full one.
 
@@ -145,32 +177,6 @@ object(self)
       self#addcontext e (List.nth s i);
     done;
 
-    method serialize (s:string)=
-      let output=open_out s in 
-      let write_set:IntSet.t->out_channel->unit=
-	(fun x y->
-	 (*Write a set to the file *)
-	 Printf.fprintf y "%i " (IntSet.cardinal x);(*The number of words in the set*)
-	 IntSet.iter (fun x->Printf.fprintf y "%i " x) x;
-	 Printf.fprintf y "\n") in 
-      let write_word:string->word->out_channel->unit=
-	(fun s x y->
-	 Printf.fprintf y "%s %i " s x.id ;
-	 (*Write the string followed by the ID*)
-	 write_set x.ctx y) in 
-      let write_ctx:int->textual->out_channel->unit=
-	(fun id x y->
-	 let print_intf=Printf.fprintf y "%i" in 
-	 Printf.fprintf y "%i %i %i " id (List.length x.prec) (List.length x.follow);
-	 List.iter print_intf x.prec;
-	 List.iter print_intf x.follow;
-	 Printf.fprintf y "\n") in
-      Printf.fprintf output "%i\n%i\n" (Hashtbl.length words) (Hashtbl.length context);
-      Hashtbl.iter (fun x y->
-		  write_word x y output) words;
-      Hashtbl.iter (fun x y->
-		    write_ctx y x output) context; 
-      close_out output;(*close the file*)
-      ()
+
            
 end;;
