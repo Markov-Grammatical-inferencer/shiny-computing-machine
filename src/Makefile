@@ -57,6 +57,24 @@ font_wrapper.cmx: scm_util.cmx font_wrapper.ml
 font_wrapper.cmo: scm_util.cmo font_wrapper.ml
 	ocamlc $(OCC) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_BYTECODE) $^ -c
 
+
+sexpressions.cmx:sexprparse.cmx sexprlex.cmx sexpressions.ml
+	$(OC) $(OCOPT) -c $(OCLIB)  sexprparse.cmx sexprlex.cmx sexpressions.ml
+sexpressions.cmo:sexprparse.cmo sexprlex.cmo sexpressions.ml
+	ocamlc $(OCC) -c sexprparse.cmo sexprlex.cmo sexpressions.ml
+
+sexprparse.cmx: sexprparse.mly
+	ocamlyacc sexprparse.mly
+	$(OC) $(OCOPT) -c sexprparse.ml
+
+sexprparse.cmo: sexprparse.mly
+	ocamlyacc sexprparse.mly
+	ocamlc $(OCC) -c sexprparse.ml
+
+sexprlex.cmx:sexprlex.mll sexprparse.cmx
+	ocamllex sexprlex.mll
+	$(OC) $(OCOPT) -c sexprparse.cmx sexprlex.ml
+
 ../set_map_multi_timing_test: scm_util.cmx set_map_multi_timing_test.ml
 	$(OC) $(OCOPT) $^ -o $@
 
