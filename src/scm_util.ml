@@ -5,11 +5,17 @@ let tau = 2.0 *. 4.0 *. atan 1.0;;
 
 let deg_to_rad x = x *. tau /. 360.;;
 let rad_to_deg x = x /. tau *. 360.;;
+let apply_polar_movement radius theta (x,y) = ((x +. (radius *. (cos theta))),(y +. (radius *. (sin theta))));;
 
+let ipow b e =
+    let rec helper b e a =
+        if e = 0 then a else helper b (e-1) (b*a) in
+    helper b e 1;;
 let next_pow2 x =
     let rec helper y acc =
         if y = 0 then acc else helper (y/2) (acc*2) in
     helper (x-1) 1;;
+
 let clamp lo hi x = max lo (min x hi);;
 let inplace fn xref = xref := (fn !xref);;
 let inplace2 fn (xr1,xr2) = let (a,b) = fn (!xr1,!xr2) in xr1 := a; xr2 := b;;
@@ -34,6 +40,12 @@ let get_r c = Int32.to_int (Int32.shift_right (Int32.logand (Int32.of_int c) (In
 let get_g c = Int32.to_int (Int32.shift_right (Int32.logand (Int32.of_int c) (Int32.of_int 0x00FF00)) 8) in
 let get_b c = Int32.to_int                    (Int32.logand (Int32.of_int c) (Int32.of_int 0x0000FF)) in
     (get_r col, get_g col, get_b col);;
+
+module Array =
+struct
+include Array
+let contains x = Array.fold_left (fun acc y -> (x = y) || acc) false
+end;;
 
 module List =
 struct
@@ -67,8 +79,8 @@ let of_list = List.fold_left (fun acc elem -> add elem acc) empty
 let map fn set = fold (fun elem -> add (fn elem)) set empty
 
 (* TODO: efficiency-test imperative vs functional versions of map_multi *)
-(* let with_setref fn = let sr = ref empty in fn sr; !sr *)
-(* let map_multi (fn : elt -> elt list) set = with_setref (fun sr -> List.iter (fun lst -> List.iter (fun elem -> inplace (add elem) sr) lst) (List.map fn (elements set))) *)
+let with_setref fn = let sr = ref empty in fn sr; !sr
+let map_multi_imp (fn : elt -> elt list) set = with_setref (fun sr -> List.iter (fun lst -> List.iter (fun elem -> inplace (add elem) sr) lst) (List.map fn (elements set)))
 let map_multi fn set = fold (fun elem -> union (of_list (fn elem))) set empty
 
 (* apply fn to each elem of set, add the results into the set, until there are no new items to add *)
@@ -76,6 +88,12 @@ let map_multi fn set = fold (fun elem -> union (of_list (fn elem))) set empty
 let set_closure (fn : elt -> elt list) set =
     let rec helper set acc =
         let elems_to_add = map_multi fn set in
+        let new_set = union elems_to_add acc in
+        if (compare acc new_set) = 0 then new_set else helper elems_to_add new_set
+    in helper set set
+let set_closure_imp (fn : elt -> elt list) set =
+    let rec helper set acc =
+        let elems_to_add = map_multi_imp fn set in
         let new_set = union elems_to_add acc in
         if (compare acc new_set) = 0 then new_set else helper elems_to_add new_set
     in helper set set
