@@ -6,10 +6,12 @@ GRAPHICS_DIRS=-I +lablgl -I +camlimages
 GRAPHICS_LIBS_COMPILED=lablgl.cmxa lablglut.cmxa graphics.cmxa camlimages_core.cmxa camlimages_freetype.cmxa 
 GRAPHICS_LIBS_BYTECODE=lablgl.cma lablglut.cma graphics.cma camlimages_core.cma camlimages_freetype.cma 
 
-all: ../SCM ../parse_tree_drawer libs ../set_map_multi_timing_test
+EXECUTABLES=../SCM ../parse_tree_drawer ../set_map_multi_timing_test
+
+.PHONY: all libs clean
+all: libs $(EXECUTABLES)
 
 libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo
-	touch libs #dummy file so that make gets the right timestamp
 
 test: file_reader.cmo string_splitter.cmo slice.cmo
 	ocaml tests.ml
@@ -21,47 +23,27 @@ ngramdisplay.cmx: disambiguator.cmx ngramdisplay.ml
 ../SCM: spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml 
 	$(OC) $(OCOPT) $(OCLIB) -I . slice.cmx spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
 
+%.cmo: %.ml
+	ocamlc $(OCC) -c $<
+%.cmx: %.ml
+	ocamlopt $(OCOPT) -c $<
 
-disambiguator.cmx: slice.cmx disambiguator.ml
-	$(OC) $(OCOPT) -c disambiguator.ml
-disambiguator.cmo: slice.cmo disambiguator.ml
-	ocamlc $(OCC) -c disambiguator.ml
+disambiguator.cmx: slice.cmx
+disambiguator.cmo: slice.cmo
 
-file_reader.cmx: file_reader.ml
-	$(OC) $(OCOPT) -c file_reader.ml
-file_reader.cmo: file_reader.ml
-	ocamlc $(OCC) -c file_reader.ml
-
-scm_util.cmx: scm_util.ml
-	$(OC) $(OCOPT) -c scm_util.ml
-scm_util.cmo: scm_util.ml
-	ocamlc $(OCC) -c scm_util.ml
-
-string_splitter.cmx: string_splitter.ml
-	$(OC) $(OCOPT) -c string_splitter.ml 
-string_splitter.cmo: string_splitter.ml
-	ocamlc $(OCC) -c string_splitter.ml
-
-slice.cmx: slice.ml
-	$(OC) $(OCOPT) -c slice.ml
-slice.cmo: slice.ml
-	ocamlc $(OCC) -c  slice.ml
-
-spell_checking.cmx: slice.cmx spell_checking.ml 
-	$(OC) $(OCOPT) -c $^
-
+spell_checking.cmx: slice.cmx
 spell_checking.cmo: spell_checking.ml
 	ocamlc $(OCC) -c str.cma spell_checking.ml
 
-glr_parser.cmx: scm_util.cmx glr_parser.ml
-	$(OC) $(OCOPT) -c glr_parser.ml
-glr_parser.cmo: scm_util.cmo glr_parser.ml
-	ocamlc $(OCC) -c glr_parser.ml
+glr_parser.cmx: scm_util.cmx
+glr_parser.cmo: scm_util.cmo
+
 #produce the editor
 editor.cmx: editor.ml
 	$(OC) $(OCOPT) -I ../ocaml-curses/ curses.cmxa editor.ml
 editor.cmo: editor.ml
 	ocamlc $(OCC) -I ../ocaml-curses/ curses.cma editor.ml -o editor
+
 ../parse_tree_drawer: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.cmx parse_tree_drawer.ml
 	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../parse_tree_drawer
 
@@ -76,6 +58,7 @@ font_wrapper.cmo: scm_util.cmo font_wrapper.ml
 	ocamlc $(OCC) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_BYTECODE) $^ -c
 
 ../set_map_multi_timing_test: scm_util.cmx set_map_multi_timing_test.ml
-	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o $@
+	$(OC) $(OCOPT) $^ -o $@
+
 clean:
-	rm *.cmi *.cmx *.cmo *.annot *.o
+	rm *.cmi *.cmx *.cmo *.annot *.o $(EXECUTABLES)
