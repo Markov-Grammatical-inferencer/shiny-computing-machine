@@ -20,10 +20,10 @@ let rec content_to_string (co:content)=
   String.concat " " !j;;
 
 let string_to_contents (s:string)=
-  let i=ref None in 
+  let i=ref [None] in 
   (
   try
     let lexbuf=Lexing.from_string s in 
-    i:=SexprParse.input Sexprlex.token lexbu;
+    i:=Sexprparse.input Sexprlex.token lexbuf;
   with End_of_file->());
   !i;;
