@@ -11,7 +11,7 @@ EXECUTABLES=../SCM ../parse_tree_drawer ../set_map_multi_timing_test
 .PHONY: all libs clean
 all: libs $(EXECUTABLES)
 
-libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo
+libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo sexprparse.cmo sexprlex.cmo
 
 test: file_reader.cmo string_splitter.cmo slice.cmo
 	ocaml tests.ml
@@ -58,22 +58,27 @@ font_wrapper.cmo: scm_util.cmo font_wrapper.ml
 	ocamlc $(OCC) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_BYTECODE) $^ -c
 
 
-sexpressions.cmx:sexprparse.cmx sexprlex.cmx sexpressions.ml
+sexpressions.cmx: sexprparse.cmx sexprlex.cmx sexpressions.ml
 	$(OC) $(OCOPT) -c $(OCLIB)  sexprparse.cmx sexprlex.cmx sexpressions.ml
-sexpressions.cmo:sexprparse.cmo sexprlex.cmo sexpressions.ml
+sexpressions.cmo: sexprparse.cmo sexprlex.cmo sexpressions.ml
 	ocamlc $(OCC) -c sexprparse.cmo sexprlex.cmo sexpressions.ml
 
-sexprparse.cmx: sexprparse.mly
+sexprparse.cli sexprparse.mli sexprparse.ml: sexprparse.mly
 	ocamlyacc sexprparse.mly
-	$(OC) $(OCOPT) -c sexprparse.ml
+	ocamlc -c sexprparse.mli sexprparse.ml
 
-sexprparse.cmo: sexprparse.mly
-	ocamlyacc sexprparse.mly
-	ocamlc $(OCC) -c sexprparse.ml
+sexprparse.cmx: sexprparse.ml
+	$(OC) $(OCOPT) -c $^
 
-sexprlex.cmx:sexprlex.mll sexprparse.cmx
+sexprparse.cmo: sexprparse.ml
+	ocamlc $(OCC) -c $^
+
+sexprlex.cmi sexprlex.mli sexprlex.ml: sexprlex.mll
 	ocamllex sexprlex.mll
-	$(OC) $(OCOPT) -c sexprparse.cmx sexprlex.ml
+	ocamlc -c sexprlex.mli sexprlex.ml
+
+sexprlex.cmx: sexprlex.ml
+	$(OC) $(OCOPT) -c sexprlex.ml
 
 ../set_map_multi_timing_test: scm_util.cmx set_map_multi_timing_test.ml
 	$(OC) $(OCOPT) $^ -o $@
