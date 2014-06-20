@@ -63,7 +63,7 @@ sexpressions.cmx: sexprparse.cmx sexprlex.cmx sexpressions.ml
 sexpressions.cmo: sexprparse.cmo sexprlex.cmo sexpressions.ml
 	ocamlc $(OCC) -c sexprparse.cmo sexprlex.cmo sexpressions.ml
 
-sexprparse.cli sexprparse.mli sexprparse.ml: sexprparse.mly
+sexprparse.cmi sexprparse.mli sexprparse.ml: sexprparse.mly
 	ocamlyacc sexprparse.mly
 	ocamlc -c sexprparse.mli sexprparse.ml
 

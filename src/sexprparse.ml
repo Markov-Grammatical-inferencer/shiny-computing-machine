@@ -48,10 +48,25 @@ let rec content_to_string (co:content)=
   done;
   j:=!j@[")"];
   String.concat " " !j;;
+let getNth (c:content) (i:int)=
+  let r=ref i in 
+  let j=ref c in 
+  while (!r)>0 do
+   (match !j with 
+      Number (a,b)->
+      j:=b
+    |Sub (a,b)->
+      j:=b
+    |Id (a,b)->
+      j:=b
+    |None->
+      raise (Invalid_argument "Exceeded bounds of s-expression"));
+   r:=!r-1;
+  done;
+  !j;;
 
 
-
-# 55 "sexprparse.ml"
+# 70 "sexprparse.ml"
 let yytransl_const = [|
   259 (* LPAREN *);
   260 (* RPAREN *);
@@ -116,68 +131,68 @@ let yyact = [|
   (fun _ -> failwith "parser")
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 57 "sexprparse.mly"
+# 72 "sexprparse.mly"
       ([None])
-# 122 "sexprparse.ml"
+# 137 "sexprparse.ml"
                : content list))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : content list) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'line) in
     Obj.repr(
-# 58 "sexprparse.mly"
-                (_2)
-# 130 "sexprparse.ml"
+# 73 "sexprparse.mly"
+                 (_2)
+# 145 "sexprparse.ml"
                : content list))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : content) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'line) in
     Obj.repr(
-# 59 "sexprparse.mly"
+# 74 "sexprparse.mly"
                        ([_1]@_3 )
-# 138 "sexprparse.ml"
+# 153 "sexprparse.ml"
                : 'line))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 60 "sexprparse.mly"
+# 75 "sexprparse.mly"
             ([None])
-# 144 "sexprparse.ml"
+# 159 "sexprparse.ml"
                : 'line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : content) in
     Obj.repr(
-# 61 "sexprparse.mly"
+# 76 "sexprparse.mly"
                          (_2)
-# 151 "sexprparse.ml"
+# 166 "sexprparse.ml"
                : content))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : string) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : content) in
     Obj.repr(
-# 62 "sexprparse.mly"
+# 77 "sexprparse.mly"
               ( Id (_1,_2))
-# 159 "sexprparse.ml"
+# 174 "sexprparse.ml"
                : content))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : int) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : content) in
     Obj.repr(
-# 63 "sexprparse.mly"
+# 78 "sexprparse.mly"
                ( Number (_1,_2))
-# 167 "sexprparse.ml"
+# 182 "sexprparse.ml"
                : content))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : content) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : content) in
     Obj.repr(
-# 64 "sexprparse.mly"
+# 79 "sexprparse.mly"
                 (Sub (_1,_2))
-# 175 "sexprparse.ml"
+# 190 "sexprparse.ml"
                : content))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 65 "sexprparse.mly"
+# 80 "sexprparse.mly"
      ( None)
-# 181 "sexprparse.ml"
+# 196 "sexprparse.ml"
                : content))
 (* Entry input *)
 ; (fun __caml_parser_env -> raise (Parsing.YYexit (Parsing.peek_val __caml_parser_env 0)))

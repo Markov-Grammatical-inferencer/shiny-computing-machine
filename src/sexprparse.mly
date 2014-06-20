@@ -39,7 +39,22 @@ let rec content_to_string (co:content)=
   done;
   j:=!j@[")"];
   String.concat " " !j;;
-
+let getNth (c:content) (i:int)=
+  let r=ref i in 
+  let j=ref c in 
+  while (!r)>0 do
+   (match !j with 
+      Number (a,b)->
+      j:=b
+    |Sub (a,b)->
+      j:=b
+    |Id (a,b)->
+      j:=b
+    |None->
+      raise (Invalid_argument "Exceeded bounds of s-expression"));
+   r:=!r-1;
+  done;
+  !j;;
 
 
 %}
@@ -55,7 +70,7 @@ let rec content_to_string (co:content)=
 
 %%
 input:{[None]}
-    |input line {$2};
+     |input line {$2};
 line:sexp NEWLINE line {[$1]@$3 } 
     |NEWLINE{[None]};
 sexp: LPAREN cont RPAREN {$2};

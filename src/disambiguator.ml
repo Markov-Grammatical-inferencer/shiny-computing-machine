@@ -31,13 +31,25 @@ struct
 end;;
 
 type textual={prec:int list;follow:int list};;
-type word={id:int;ctx:IntSet.t};;
+type word= {id:int;ctx:IntSet.t};;
 let sexpression_of_word (s:string) (w:word)=
   let t=ref None in 
   t:=Number (w.id,(Sub ((IntSet.to_SExpression w.ctx),None)));
   t:=Id (s,!t);
   !t;;
-
+let word_of_sexpression (c:content)=
+  match c with
+    Id (wname,n)-> 
+    (match n with
+     |Number (wid,st)->
+       (match st with 
+	  Sub (st,_)->
+	  let fset=IntSet.from_sexpression st in 
+	  (wname,{id=wid;ctx=fset})
+	 |_->("",{id=0;ctx=IntSet.empty}))
+     |_->("",{id=0;ctx=IntSet.empty}))
+  |_->("",{id=0;ctx=IntSet.empty})
+       ;;
 (*
 Generate sub contexts based upon the extant full one.
 
