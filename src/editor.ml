@@ -56,13 +56,15 @@ object(self)
 
 	method move_after ()=
 	  ignore(self#move_relative (dy,dx))
-	method get_mode_name ()="Befunge"
+	method get_mode_name ()=
+	  "Befunge"
 	initializer ignore(init_pair 1 Color.cyan Color.black;
 			  init_pair 2 Color.yellow Color.black)
 end;;
 class editor=
 object(self)
-	val mutable contents:(int*int,char) Hashtbl.t=Hashtbl.create 10
+	val mutable contents=Array.create_matrix 0 0 (Char.code (" ".[0]))
+	val mutable offset=0(*The offset for scrolling*)
 	method position ()=
 	  getyx (stdscr ())
 
@@ -77,8 +79,9 @@ object(self)
 	method private handlecursor (i:int)=
 	  match i with 
 	  |x when x= Keys.enter->
-	     ignore(move (let y,_=self#position () in 
-		   y+1) 0)
+	     ignore(self#movecursor Down);
+	     let cy,_=self#position () in 
+	     ignore(move cy 0)(*Move all the way to the left*)
 	  |x when x =Keys.right->
 	    ignore(self#movecursor Right)
 	  |x when x=Keys.left->
@@ -86,23 +89,12 @@ object(self)
 	  |x when x=Keys.up->
 	    ignore(self#movecursor Up)
 	  |x when x=Keys.down->
-	    ignore(self#movecursor Down)
-	  |x when x=Keys.backspace||
-		    x=Keys.ic->
-	    ignore(self#movecursor Left);
-	    ignore(delch())
-	  |x->try
-	       if (Char.escaped (Char.chr x))="^?" then
-		 self#handlecursor Keys.left
-	       else
-		 begin
-		   Hashtbl.replace contents (self#position ()) (Char.chr x);
-		   ignore(addch x)
-		   end
-	     with invalid_arg->
-	       
-	       ()
-
+	    let cy,cx=self#position () in 
+	    let my,mx=getmaxyx (stdscr ()) in 
+	    if (cy-1)=my then 
+	      contents<-Array.append contents (Array.make_matrix 1 mx (Char.code (" ".[0])));
+	  ()
+	 
 	method edit_loop ()=
 	  let i=ref true in 
 	  while !i do
@@ -110,8 +102,7 @@ object(self)
 	    ignore(self#handlecursor j);
 	    refresh ();
 	  done;
-	  ()
-	    
+	  ()   
 	   
 			    
 end;;
@@ -126,3 +117,7 @@ let ()=
   with x->
     endwin ();
     exit 0;;
+
+
+
+
