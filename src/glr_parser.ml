@@ -94,13 +94,18 @@ type t = TS.t
 type elt = TS.elt
 module TokenSet = Set.Make(struct type t = elt let compare = TS.compare end)
 module LRItemSet = ExtendSet(Set.Make(struct type t = elt lr_item let compare = compare end))
-type parser_automaton_state = PA_State of (elt symbol, parser_automaton_state) Hashtbl.t
+(* type parser_automaton_state = PA_State of (elt symbol, parser_automaton_state) Hashtbl.t *)
+
+let lritems_starting_with gram sym = List.map lritem_of_production (List.find_all (fun (prod_lhs,_) -> prod_lhs = sym) gram)
 
 let grammatical_closure : (elt grammar -> LRItemSet.t -> LRItemSet.t) = fun gram ->
-    let lritems_starting_with sym = List.map lritem_of_production (List.find_all (fun (prod_lhs,_) -> prod_lhs = sym) gram) in
     LRItemSet.set_closure (fun (lhs, rhs1, rhs2) -> match rhs2 with
-        | Nonterminal(nt) :: _ -> lritems_starting_with (Nonterminal(nt))
-        | _ -> [(lhs, rhs1, rhs2)])
+        | Nonterminal(nt) :: _ -> Printf.printf "nt: %s\n%!" nt; lritems_starting_with gram (Nonterminal(nt))
+        | _ -> Printf.printf "other path\n%!"; [(lhs, rhs1, rhs2)])
+
+let closure_of_list gram l = grammatical_closure gram (LRItemSet.of_list l)
+
+let flatten_state s = List.map (fun (x,y) -> (x, LRItemSet.elements y)) (Hashtbl.list_of s)
 
 let make_parser_state gram set =
     (* let automaton_state : parser_automaton_state = PA_State(Hashtbl.create 0) in *)
@@ -116,11 +121,10 @@ let make_parser_state gram set =
     Hashtbl.map (fun k v -> (k, (grammatical_closure gram v))) h
 
 let make_initial_parser_state gram = 
-    let start_set = (grammatical_closure gram (LRItemSet.of_list [lritem_of_production (List.find (fun (lhs,_) -> lhs = Start_symbol) gram)])) in
+    let start_set = closure_of_list gram (lritems_starting_with gram Start_symbol) in
     make_parser_state gram start_set
 
 (* let make_parser : (elt grammar -> (t -> elt tree)) = fun gram -> *)
-    
 end;;
 
 (*
