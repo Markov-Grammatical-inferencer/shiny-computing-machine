@@ -110,11 +110,17 @@ let flatten_state s = List.map (fun (x,y) -> (x, LRItemSet.elements y)) (Hashtbl
 let make_parser_state gram set =
     (* let automaton_state : parser_automaton_state = PA_State(Hashtbl.create 0) in *)
     let h : (elt symbol, LRItemSet.t) Hashtbl.t = Hashtbl.create 0 in
-    let hget tbl key = try Hashtbl.find tbl key with Not_found -> LRItemSet.empty in
+    let hget key = try Hashtbl.find h key with Not_found -> LRItemSet.empty in
     LRItemSet.iter (fun (lhs, rhs1, rhs2) -> match rhs2 with
-        | rhs2hd :: rhs2tl -> (match rhs2hd with
-            | Nonterminal(nt) as sym -> Hashtbl.add h sym (LRItemSet.union (hget h sym) (LRItemSet.of_list [(lhs, rhs1@[rhs2hd], rhs2tl)]))
-            | Terminal(t) as sym -> Hashtbl.add h sym (LRItemSet.union (hget h sym) (LRItemSet.of_list [(lhs, rhs1@[rhs2hd], rhs2tl)]))
+        | rhs2hd :: rhs2tl -> 
+            let process sym =
+                let newval = (LRItemSet.union (hget sym) (LRItemSet.of_list [(lhs, rhs1@[rhs2hd], rhs2tl)])) in
+                Hashtbl.remove h sym;
+                Hashtbl.add h sym newval
+            in
+            (match rhs2hd with
+            | Nonterminal(nt) as sym -> process sym
+            | Terminal(t) as sym -> process sym
             | Start_symbol -> ())
         | [] -> ()
     ) set;
