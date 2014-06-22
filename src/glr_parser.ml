@@ -115,7 +115,7 @@ let make_parser_state gram set =
         | rhs2hd :: rhs2tl -> 
             let process sym =
                 let newval = (LRItemSet.union (hget sym) (LRItemSet.of_list [(lhs, rhs1@[rhs2hd], rhs2tl)])) in
-                Hashtbl.remove h sym;
+                Hashtbl.remove h sym; (* ocaml's Hashtbl appears to retain keys, at least as observed by adding the same key twice and then folding over the table *)
                 Hashtbl.add h sym newval
             in
             (match rhs2hd with

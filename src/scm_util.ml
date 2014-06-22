@@ -47,17 +47,18 @@ include Array
 let contains x = Array.fold_left (fun acc y -> (x = y) || acc) false
 end;;
 
+let curry f (x,y) = f x y;;
+
 module List =
 struct
 include List
+let rev2 l1 l2 = (rev l1, rev l2)
 let contains x = List.exists (fun elt -> elt = x)
 let zip l1 l2 = List.rev (List.fold_left2 (fun acc e1 e2 -> (e1,e2) :: acc) [] l1 l2);;
 let unzip l =
-    let (rev_x, rev_y) =
-        List.fold_left (fun (acc_x,acc_y) (elem_x,elem_y) ->
+    curry rev2 (List.fold_left (fun (acc_x,acc_y) (elem_x,elem_y) ->
             (elem_x :: acc_x),(elem_y :: acc_y)
-        ) ([],[]) l in
-    (List.rev rev_x,List.rev rev_y)
+        ) ([],[]) l)
 end;;
 
 module Hashtbl =
