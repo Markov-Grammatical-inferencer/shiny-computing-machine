@@ -65,7 +65,8 @@ module Hashtbl =
 struct
 include Hashtbl
 let map fn tbl = fold (fun k v acc -> curry (add acc) (fn k v); acc) tbl (Hashtbl.create 0)
-
+let exists fn tbl = fold (fun k v acc -> if (fn k v) then true else acc) tbl false
+let contains_key key = exists (fun k v -> k = key)
 let list_of tbl = Hashtbl.fold (fun k v acc -> (k,v) :: acc) tbl []
 end;;
 

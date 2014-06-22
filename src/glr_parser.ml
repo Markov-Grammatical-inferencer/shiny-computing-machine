@@ -96,6 +96,10 @@ module TokenSet = Set.Make(struct type t = elt let compare = TS.compare end)
 module LRItemSet = ExtendSet(Set.Make(struct type t = elt lr_item let compare = compare end))
 (* type parser_automaton_state = PA_State of (elt symbol, parser_automaton_state) Hashtbl.t *)
 
+(* note the similarity between curried functions and the shape of the transition_table type (right associative), this is deliberate:
+   transition_table is basically a lookup function with 2 keys, and it's cleaner to manipulate when curried (as opposed to tupled) *)
+type transition_table = (LRItemSet.t, (elt symbol, LRItemSet.t) Hashtbl.t) Hashtbl.t
+
 let lritems_starting_with gram sym = List.map lritem_of_production (List.find_all (fun (prod_lhs,_) -> prod_lhs = sym) gram)
 
 let grammatical_closure : (elt grammar -> LRItemSet.t -> LRItemSet.t) = fun gram ->
@@ -105,18 +109,16 @@ let grammatical_closure : (elt grammar -> LRItemSet.t -> LRItemSet.t) = fun gram
 
 let closure_of_list gram l = grammatical_closure gram (LRItemSet.of_list l)
 
-let flatten_state s = List.map (fun (x,y) -> (x, LRItemSet.elements y)) (Hashtbl.list_of s)
+(* let flatten_state s = List.map (fun (x,y) -> (x, LRItemSet.elements y)) (Hashtbl.list_of s) *)
 
-let make_parser_state gram set =
-    (* let automaton_state : parser_automaton_state = PA_State(Hashtbl.create 0) in *)
+let transitions_from_state gram set =
     let h : (elt symbol, LRItemSet.t) Hashtbl.t = Hashtbl.create 0 in
     let hget key = try Hashtbl.find h key with Not_found -> LRItemSet.empty in
     LRItemSet.iter (fun (lhs, rhs1, rhs2) -> match rhs2 with
         | rhs2hd :: rhs2tl -> 
             let process sym =
                 let newval = (LRItemSet.union (hget sym) (LRItemSet.of_list [(lhs, rhs1@[rhs2hd], rhs2tl)])) in
-                Hashtbl.remove h sym; (* ocaml's Hashtbl appears to retain keys, at least as observed by adding the same key twice and then folding over the table *)
-                Hashtbl.add h sym newval
+                Hashtbl.replace h sym newval
             in
             (match rhs2hd with
             | Nonterminal(nt) as sym -> process sym
@@ -126,9 +128,25 @@ let make_parser_state gram set =
     ) set;
     Hashtbl.map (fun k v -> (k, (grammatical_closure gram v))) h
 
-let make_initial_parser_state gram = 
-    let start_set = closure_of_list gram (lritems_starting_with gram Start_symbol) in
-    make_parser_state gram start_set
+let make_transitions_table gram = 
+    let transitions : transition_table = Hashtbl.create 0 in
+    let dfs_stack = Stack.create () in
+    Stack.push (closure_of_list gram (lritems_starting_with gram Start_symbol)) dfs_stack;
+    while (not (Stack.is_empty dfs_stack)) do
+        let cur_set = (Stack.pop dfs_stack) in
+        if Hashtbl.contains_key cur_set transitions then () else (* guard clause to prevent cycles in search graph *)
+        let transitions_from_cur = transitions_from_state gram cur_set in
+        Hashtbl.add transitions cur_set transitions_from_cur;
+        Hashtbl.iter (fun k v -> Stack.push v dfs_stack) transitions_from_cur
+    done;
+    transitions
+
+(* This is for visualizing structures for debugging, *not* for processing. *)
+let flatten_transitions_table (tbl : transition_table) =
+    let (states, state_transitions) = List.unzip (Hashtbl.list_of tbl) in
+    let (syms, destinations) = List.unzip (List.map List.unzip (List.map Hashtbl.list_of state_transitions)) in
+    let (readable_states, readable_dests) = ((List.map LRItemSet.elements states), (List.map (List.map LRItemSet.elements) destinations)) in
+    (readable_states, syms, readable_dests)
 
 (* let make_parser : (elt grammar -> (t -> elt tree)) = fun gram -> *)
 end;;
@@ -141,6 +159,9 @@ open Glr_parser;;
 module P = Make(StringArray);;
 open P;;
 
+let a = make_transitions_table simple_operator_grammar;;
+let (aks, avs) = List.unzip (Hashtbl.list_of a);;
+let (aks1, avs1) = (List.map LRItemSet.elements aks, List.map Hashtbl.list_of avs);;
 *)
 
 (*
