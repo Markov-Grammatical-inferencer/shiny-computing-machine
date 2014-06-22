@@ -64,11 +64,7 @@ end;;
 module Hashtbl =
 struct
 include Hashtbl
-let map fn tbl =
-    let new_tbl = create 0 in iter (fun k v -> 
-        let (out_key, out_val) = (fn k v) in
-        add new_tbl out_key out_val
-    ) tbl; new_tbl
+let map fn tbl = fold (fun k v acc -> curry (add acc) (fn k v); acc) tbl (Hashtbl.create 0)
 
 let list_of tbl = Hashtbl.fold (fun k v acc -> (k,v) :: acc) tbl []
 end;;
