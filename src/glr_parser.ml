@@ -39,12 +39,16 @@ let simple_tokenize = string_map identity;;
 type 'a symbol = Start_symbol | Terminal of 'a | Nonterminal of string;;
 type 'a production = 'a symbol * 'a symbol list;; (* (lhs, rhs), not handling super-CFGs *)
 type 'a lr_item = 'a symbol * 'a symbol list * 'a symbol list;; (* (lhs, rhs_before_dot, rhs_after_dot) *)
-type 'a parse_action = Shift of int * 'a symbol | Reduce of 'a production | Accept;;
 type 'a grammar = 'a production list;;
 
 (* semantic type : cur_state * lookahead -> action_to_perform *)
-type 'a ptable = (int * 'a symbol, 'a parse_action) Hashtbl.t
-let get_ptable_entry table state lookahead = Hashtbl.find table (state,lookahead)
+(* type 'a ptable = (int * 'a symbol, 'a parse_action) Hashtbl.t *)
+(* let get_ptable_entry table state lookahead = Hashtbl.find table (state,lookahead) *)
+
+let string_of_symbol string_of_type = function
+    | Start_symbol -> "Start"
+    | Terminal(t) -> "Terminal(" ^ (string_of_type t) ^ ")"
+    | Nonterminal(nt) -> "Nonterminal(" ^ nt ^ ")";;
 
 let balanced_paren_grammar = [(Nonterminal "S",[Terminal "(";Nonterminal "S";Terminal ")"]);(Nonterminal "S",[])];; (* Very verbose way of saying S -> "(" S ")" | "" *)
 
@@ -92,13 +96,20 @@ module Make = functor (TS : TokenStream) ->
 struct
 type t = TS.t
 type elt = TS.elt
-module TokenSet = Set.Make(struct type t = elt let compare = TS.compare end)
+(* module TokenSet = Set.Make(struct type t = elt let compare = TS.compare end) *)
 module LRItemSet = ExtendSet(Set.Make(struct type t = elt lr_item let compare = compare end))
+module LRItemSetSet = ExtendSet(Set.Make(LRItemSet))
+type 'a parse_action = Shift of LRItemSet.t * 'a symbol | Reduce of 'a production | Accept;;
+module ParseActionSet = ExtendSet(Set.Make(struct type t = elt parse_action let compare = compare end))
 (* type parser_automaton_state = PA_State of (elt symbol, parser_automaton_state) Hashtbl.t *)
 
+
+(* LRItemSets are used directly instead of integers representing an index (unlike both wikipedia and the textbook); this may need to be optimized later *)
 (* note the similarity between curried functions and the shape of the transition_table type (right associative), this is deliberate:
    transition_table is basically a lookup function with 2 keys, and it's cleaner to manipulate when curried (as opposed to tupled) *)
-type transition_table = (LRItemSet.t, (elt symbol, LRItemSet.t) Hashtbl.t) Hashtbl.t
+type transition_table = (LRItemSet.t, (elt symbol, LRItemSet.t) Hashtbl.t) Hashtbl.t (* may need to extend return type here to SetSet for GLR? currently unsure *)
+type action_table = (LRItemSet.t * elt symbol, ParseActionSet.t) Hashtbl.t
+type goto_table = (LRItemSet.t * elt symbol, LRItemSetSet.t) Hashtbl.t
 
 let lritems_starting_with gram sym = List.map lritem_of_production (List.find_all (fun (prod_lhs,_) -> prod_lhs = sym) gram)
 
@@ -141,6 +152,29 @@ let make_transitions_table gram =
     done;
     transitions
 
+let make_action_and_goto_tables gram trans_table =
+    let atbl : action_table = Hashtbl.create 0 in
+    let gtbl : goto_table = Hashtbl.create 0 in
+    let aget k = try Hashtbl.find atbl k with Not_found -> ParseActionSet.empty in
+    let gget k = try Hashtbl.find gtbl k with Not_found -> LRItemSetSet.empty in
+    let aadd k v = Hashtbl.replace atbl k (ParseActionSet.add v (aget k)) in
+    let gadd k v = Hashtbl.replace gtbl k (LRItemSetSet.add v (gget k)) in
+    Hashtbl.iter (fun oldset sym_to_newset ->
+        let reduces = LRItemSet.fold (fun elem acc ->
+            match elem with
+            | (lhs, rhs, []) -> (Reduce((lhs, rhs))) :: acc
+            | _ -> acc
+        ) oldset [] in
+        Hashtbl.iter (fun sym newset ->
+            (match sym with
+            | Nonterminal(nt) -> gadd (oldset, sym) newset
+            | Terminal(t) -> aadd (oldset, sym) (Shift(newset, sym))
+            | Start_symbol -> ());
+            List.iter (aadd (oldset, sym)) reduces
+        ) sym_to_newset
+    ) trans_table;
+    (atbl, gtbl)
+
 (* This is for visualizing structures for debugging, *not* for processing. *)
 let flatten_transitions_table (tbl : transition_table) =
     let (states, state_transitions) = List.unzip (Hashtbl.list_of tbl) in
@@ -160,8 +194,8 @@ module P = Make(StringArray);;
 open P;;
 
 let a = make_transitions_table simple_operator_grammar;;
-let (aks, avs) = List.unzip (Hashtbl.list_of a);;
-let (aks1, avs1) = (List.map LRItemSet.elements aks, List.map Hashtbl.list_of avs);;
+let (atbl, gtbl) = make_action_and_goto_tables simple_operator_grammar a;;
+Hashtbl.list_of (Hashtbl.map (fun (k1, k2) v -> ((LRItemSet.elements k1, k2), ParseActionSet.elements v)) atbl);;
 *)
 
 (*

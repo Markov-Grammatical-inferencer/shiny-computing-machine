@@ -25,6 +25,7 @@ let (+.=) x a = inplace ((+.) a) x;;
 
 let identity x = x;;
 let compose f g x = f (g x);;
+let uncurry f (x,y) = f x y;;
 
 let string_map f str =
     let arr = Array.create (String.length str) (f 'a') in
@@ -47,7 +48,9 @@ include Array
 let contains x = Array.fold_left (fun acc y -> (x = y) || acc) false
 end;;
 
-let curry f (x,y) = f x y;;
+(* type ('a, 'b) either = T1 of 'a | T2 of 'b;; *)
+(* let either_adapt fn1 fn2 x = match x with T1 (y) -> fn1 y | T2 (z) -> fn2 z;; *)
+(* let apply_tuple2 fn1 fn2 (x,y) = (fn1 x, fn2 y);; *)
 
 module List =
 struct
@@ -56,7 +59,7 @@ let rev2 l1 l2 = (rev l1, rev l2)
 let contains x = List.exists (fun elt -> elt = x)
 let zip l1 l2 = List.rev (List.fold_left2 (fun acc e1 e2 -> (e1,e2) :: acc) [] l1 l2);;
 let unzip l =
-    curry rev2 (List.fold_left (fun (acc_x,acc_y) (elem_x,elem_y) ->
+    uncurry rev2 (List.fold_left (fun (acc_x,acc_y) (elem_x,elem_y) ->
             (elem_x :: acc_x),(elem_y :: acc_y)
         ) ([],[]) l)
 end;;
@@ -64,7 +67,7 @@ end;;
 module Hashtbl =
 struct
 include Hashtbl
-let map fn tbl = fold (fun k v acc -> curry (add acc) (fn k v); acc) tbl (Hashtbl.create 0)
+let map fn tbl = fold (fun k v acc -> uncurry (add acc) (fn k v); acc) tbl (Hashtbl.create 0)
 let exists fn tbl = fold (fun k v acc -> if (fn k v) then true else acc) tbl false
 let contains_key key = exists (fun k v -> k = key)
 let list_of tbl = Hashtbl.fold (fun k v acc -> (k,v) :: acc) tbl []
@@ -75,6 +78,7 @@ struct
 include SetModule
 let of_list = List.fold_left (fun acc elem -> add elem acc) empty
 let map fn set = fold (fun elem -> add (fn elem)) set empty
+let contains value = exists (fun elem -> elem = value)
 
 (* TODO: efficiency-test imperative vs functional versions of map_multi *)
 let with_setref fn = let sr = ref empty in fn sr; !sr
