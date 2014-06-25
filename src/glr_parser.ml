@@ -124,7 +124,7 @@ let closure_of_list gram l = grammatical_closure gram (LRItemSet.of_list l)
 
 let transitions_from_state gram set =
     let h : (elt symbol, LRItemSet.t) Hashtbl.t = Hashtbl.create 0 in
-    let hget key = try Hashtbl.find h key with Not_found -> LRItemSet.empty in
+    let hget = Hashtbl.find_default LRItemSet.empty h in
     LRItemSet.iter (fun (lhs, rhs1, rhs2) -> match rhs2 with
         | rhs2hd :: rhs2tl -> 
             let process sym =
@@ -155,8 +155,8 @@ let make_transitions_table gram =
 let make_action_and_goto_tables gram trans_table =
     let atbl : action_table = Hashtbl.create 0 in
     let gtbl : goto_table = Hashtbl.create 0 in
-    let aget k = try Hashtbl.find atbl k with Not_found -> ParseActionSet.empty in
-    let gget k = try Hashtbl.find gtbl k with Not_found -> LRItemSetSet.empty in
+    let aget = Hashtbl.find_default ParseActionSet.empty atbl in
+    let gget = Hashtbl.find_default LRItemSetSet.empty gtbl in
     let aadd k v = Hashtbl.replace atbl k (ParseActionSet.add v (aget k)) in
     let gadd k v = Hashtbl.replace gtbl k (LRItemSetSet.add v (gget k)) in
     Hashtbl.iter (fun oldset sym_to_newset ->

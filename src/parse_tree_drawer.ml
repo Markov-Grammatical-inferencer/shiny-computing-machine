@@ -8,7 +8,7 @@ let rec make_tree_drawer tr =
     let (draw_cur_node, w, h) = make_textrect_drawer freemono_face draw_rainbow node in
     let (draw_subtree_list, widths_and_heights) = List.unzip (List.map make_tree_drawer subtrees) in
     let (subtree_widths, subtree_heights) = List.unzip widths_and_heights in
-    let total_subwidth = List.fold_left (+.) 0. subtree_widths in
+    (* let total_subwidth = List.fold_left (+.) 0. subtree_widths in *)
     let max_subwidth = List.fold_left (max) 0. subtree_widths in
     let max_subheight = List.fold_left (max) 0. subtree_heights in
     (fun x y z () ->
