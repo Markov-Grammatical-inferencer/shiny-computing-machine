@@ -108,9 +108,10 @@ module ParseActionSet = ExtendSet(Set.Make(struct type t = elt parse_action let 
 let string_of_action act =
     let spf = Printf.sprintf in 
     let symstr = string_of_symbol TS.string_of in
+    let string_of_production (lhs, rhs) = spf "%s ->%s" (symstr lhs) (List.fold_left (fun acc elem -> acc ^ " " ^ elem) "" (List.map symstr rhs)) in
     match act with
     | Shift(_, sym) -> spf "Shift %s " (symstr sym)
-    | Reduce((lhs, rhs)) -> spf "Reduce by %s ->%s" (symstr lhs) (List.fold_left (fun acc elem -> acc ^ " " ^ elem) "" (List.map symstr rhs))
+    | Reduce(prod) -> spf "Reduce by %s" (string_of_production prod)
     | Accept -> "Accept"
     | Reject -> "Reject"
 
@@ -200,17 +201,29 @@ let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.
 let make_parser : (elt grammar -> (t -> elt tree list)) = fun gram ->
     let action_table, goto_table = make_action_and_goto_tables gram (make_transitions_table gram) in
     fun input ->
+    let input_pos = ref 0 in
     let initial_state = PSE(((get_initial_state gram), (get_token input 0)), None) in
+    let unravel_stack_to_tree stack = Node(TS.get input 0,[]) in (* replace this with actual linked-list traversal later *)
+    let result_trees = ref [] in
     let parse_stacks = Queue.create () in
     Queue.add initial_state parse_stacks;
     while (not (Queue.is_empty parse_stacks)) do
-        let PSE((cur_state, cur_sym), parent) = Queue.pop parse_stacks in
+        let current_pse = Queue.pop parse_stacks in
+        let PSE((cur_state, _), parent) = current_pse in
+        let cur_sym = get_token input !input_pos in
+        input_pos += 1;
         Printf.printf "%s\n%!" (string_of_symbol TS.string_of cur_sym);
         let actions = Hashtbl.find_default (ParseActionSet.of_list [Reject]) action_table (cur_state, cur_sym) in 
         ParseActionSet.iter (fun elem -> Printf.printf "%s; %!" (string_of_action elem)) actions;
-        Printf.printf "\n%!"
+        Printf.printf "\n%!";
+        ParseActionSet.iter (fun action -> match action with
+            | Shift((state, sym)) -> Queue.push (PSE((state, sym), Some(current_pse))) parse_stacks
+            | Reduce(prod) -> LRItemSetSet.iter (fun gotostate -> ()) (Hashtbl.find_default LRItemSetSet.empty goto_table (cur_state, cur_sym))
+            | Accept -> List.push (unravel_stack_to_tree current_pse) result_trees
+            | Reject -> ()
+        ) actions
     done;
-    []
+    !result_trees
 
 
 (* This is for visualizing structures for debugging, *not* for processing. *)

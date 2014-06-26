@@ -62,6 +62,11 @@ let unzip l =
     uncurry rev2 (List.fold_left (fun (acc_x,acc_y) (elem_x,elem_y) ->
             (elem_x :: acc_x),(elem_y :: acc_y)
         ) ([],[]) l)
+let car = hd
+let cdr = tl
+let cons x y = x :: y
+let push x = inplace (cons x)
+let pop lr = let x = car !lr in inplace cdr lr; x
 end;;
 
 module Hashtbl =
