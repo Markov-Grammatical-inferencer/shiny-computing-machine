@@ -23,6 +23,7 @@ type elt
 val get : t -> int -> elt
 val compare : elt -> elt -> int
 val string_of : elt -> string
+val length : t -> int
 end;;
 
 module StringArray =
@@ -36,7 +37,7 @@ let string_of = identity
 end;;
 let simple_tokenize = string_map identity;;
 
-type 'a symbol = Start_symbol | Terminal of 'a | Nonterminal of string;;
+type 'a symbol = Start_symbol | Terminal of 'a | Nonterminal of string | End_of_input;;
 type 'a production = 'a symbol * 'a symbol list;; (* (lhs, rhs), not handling super-CFGs *)
 type 'a lr_item = 'a symbol * 'a symbol list * 'a symbol list;; (* (lhs, rhs_before_dot, rhs_after_dot) *)
 type 'a grammar = 'a production list;;
@@ -48,7 +49,8 @@ type 'a grammar = 'a production list;;
 let string_of_symbol string_of_type = function
     | Start_symbol -> "Start"
     | Terminal(t) -> "Terminal(" ^ (string_of_type t) ^ ")"
-    | Nonterminal(nt) -> "Nonterminal(" ^ nt ^ ")";;
+    | Nonterminal(nt) -> "Nonterminal(" ^ nt ^ ")"
+    | End_of_input -> "$$";;
 
 let balanced_paren_grammar = [(Nonterminal "S",[Terminal "(";Nonterminal "S";Terminal ")"]);(Nonterminal "S",[])];; (* Very verbose way of saying S -> "(" S ")" | "" *)
 
@@ -56,7 +58,7 @@ let balanced_paren_grammar = [(Nonterminal "S",[Terminal "(";Nonterminal "S";Ter
 let simple_imperative_grammar =
 [
 Start_symbol, [Nonterminal "program"];
-Nonterminal "program", [Nonterminal "stmt_list"; Terminal "$$"];
+Nonterminal "program", [Nonterminal "stmt_list"; End_of_input];
 Nonterminal "stmt_list", [Nonterminal "stmt_list"; Nonterminal "stmt"];
 Nonterminal "stmt_list", [Nonterminal "stmt"];
 Nonterminal "stmt", [Terminal "id"; Terminal ":="; Nonterminal "expr"];
@@ -103,20 +105,20 @@ type 'a parse_action = Shift of LRItemSet.t * 'a symbol | Reduce of 'a productio
 module ParseActionSet = ExtendSet(Set.Make(struct type t = elt parse_action let compare = compare end))
 (* type parser_automaton_state = PA_State of (elt symbol, parser_automaton_state) Hashtbl.t *)
 
-
 (* LRItemSets are used directly instead of integers representing an index (unlike both wikipedia and the textbook); this may need to be optimized later *)
 (* note the similarity between curried functions and the shape of the transition_table type (right associative), this is deliberate:
    transition_table is basically a lookup function with 2 keys, and it's cleaner to manipulate when curried (as opposed to tupled) *)
 type transition_table = (LRItemSet.t, (elt symbol, LRItemSet.t) Hashtbl.t) Hashtbl.t (* may need to extend return type here to SetSet for GLR? currently unsure *)
-type action_table = (LRItemSet.t * elt symbol, ParseActionSet.t) Hashtbl.t
-type goto_table = (LRItemSet.t * elt symbol, LRItemSetSet.t) Hashtbl.t
+type parse_state = LRItemSet.t * elt symbol
+type action_table = (parse_state, ParseActionSet.t) Hashtbl.t
+type goto_table = (parse_state, LRItemSetSet.t) Hashtbl.t
 
 let lritems_starting_with gram sym = List.map lritem_of_production (List.find_all (fun (prod_lhs,_) -> prod_lhs = sym) gram)
 
 let grammatical_closure : (elt grammar -> LRItemSet.t -> LRItemSet.t) = fun gram ->
     LRItemSet.set_closure (fun (lhs, rhs1, rhs2) -> match rhs2 with
-        | Nonterminal(nt) :: _ -> Printf.printf "nt: %s\n%!" nt; lritems_starting_with gram (Nonterminal(nt))
-        | _ -> Printf.printf "other path\n%!"; [(lhs, rhs1, rhs2)])
+        | Nonterminal(nt) :: _ -> lritems_starting_with gram (Nonterminal(nt))
+        | _ -> [(lhs, rhs1, rhs2)])
 
 let closure_of_list gram l = grammatical_closure gram (LRItemSet.of_list l)
 
@@ -134,15 +136,18 @@ let transitions_from_state gram set =
             (match rhs2hd with
             | Nonterminal(nt) as sym -> process sym
             | Terminal(t) as sym -> process sym
-            | Start_symbol -> ())
+            | Start_symbol -> ()
+            | End_of_input -> ())
         | [] -> ()
     ) set;
     Hashtbl.map (fun k v -> (k, (grammatical_closure gram v))) h
 
+let get_initial_state gram = (closure_of_list gram (lritems_starting_with gram Start_symbol))
+
 let make_transitions_table gram = 
     let transitions : transition_table = Hashtbl.create 0 in
     let dfs_stack = Stack.create () in
-    Stack.push (closure_of_list gram (lritems_starting_with gram Start_symbol)) dfs_stack;
+    Stack.push (get_initial_state gram) dfs_stack;
     while (not (Stack.is_empty dfs_stack)) do
         let cur_set = (Stack.pop dfs_stack) in
         if Hashtbl.contains_key cur_set transitions then () else (* guard clause to prevent cycles in search graph *)
@@ -169,11 +174,30 @@ let make_action_and_goto_tables gram trans_table =
             (match sym with
             | Nonterminal(nt) -> gadd (oldset, sym) newset
             | Terminal(t) -> aadd (oldset, sym) (Shift(newset, sym))
-            | Start_symbol -> ());
+            | Start_symbol -> ()
+            | End_of_input -> ());
             List.iter (aadd (oldset, sym)) reduces
         ) sym_to_newset
     ) trans_table;
     (atbl, gtbl)
+
+(* module ParseStateStackSet = MakeStackSet(struct type t = parse_state end) *)
+type parse_stack_entry = PSE of parse_state * (parse_stack_entry option) (* state, parent_pointer (which is None for the initial state) *)
+
+let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
+
+let make_parser : (elt grammar -> (t -> elt tree list)) = fun gram ->
+    let action_table, goto_table = make_action_and_goto_tables gram (make_transitions_table gram) in
+    fun input ->
+    let initial_state = PSE(((get_initial_state gram), Start_symbol), None) in
+    let parse_stacks = Queue.create () in
+    Queue.add initial_state parse_stacks;
+    while (not (Queue.is_empty parse_stacks)) do
+        let PSE((cur_state, cur_sym), parent) = Queue.pop parse_stacks in
+        Printf.printf "%s\n%!" (string_of_symbol TS.string_of cur_sym)
+    done;
+    []
+
 
 (* This is for visualizing structures for debugging, *not* for processing. *)
 let flatten_transitions_table (tbl : transition_table) =
@@ -182,7 +206,6 @@ let flatten_transitions_table (tbl : transition_table) =
     let (readable_states, readable_dests) = ((List.map LRItemSet.elements states), (List.map (List.map LRItemSet.elements) destinations)) in
     (readable_states, syms, readable_dests)
 
-(* let make_parser : (elt grammar -> (t -> elt tree)) = fun gram -> *)
 end;;
 
 (*
@@ -193,9 +216,12 @@ open Glr_parser;;
 module P = Make(StringArray);;
 open P;;
 
-let a = make_transitions_table simple_operator_grammar;;
-let (atbl, gtbl) = make_action_and_goto_tables simple_operator_grammar a;;
-Hashtbl.list_of (Hashtbl.map (fun (k1, k2) v -> ((LRItemSet.elements k1, k2), ParseActionSet.elements v)) atbl);;
+(* let a = make_transitions_table simple_operator_grammar;; *)
+(* let (atbl, gtbl) = make_action_and_goto_tables simple_operator_grammar a;; *)
+(* Hashtbl.list_of (Hashtbl.map (fun (k1, k2) v -> ((LRItemSet.elements k1, k2), ParseActionSet.elements v)) atbl);; *)
+
+let p = make_parser simple_operator_grammar;;
+p [|"0";"+";"0"|];;
 *)
 
 (*

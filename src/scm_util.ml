@@ -101,6 +101,9 @@ let set_closure_imp (fn : elt -> elt list) set =
         if (compare acc new_set) = 0 then new_set else helper elems_to_add new_set
     in helper set set
 end;;
+
+(* despite the name, use lists internally, because of mutability concerns *)
+module MakeStackSet = functor (T : sig type t end) -> ExtendSet(Set.Make(struct type t = T.t list let compare=compare end));;
 (*
 #load "scm_util.cmo";;
 open Scm_util;;
