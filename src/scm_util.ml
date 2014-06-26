@@ -72,6 +72,7 @@ let exists fn tbl = fold (fun k v acc -> if (fn k v) then true else acc) tbl fal
 let contains_key key = exists (fun k v -> k = key)
 let list_of tbl = Hashtbl.fold (fun k v acc -> (k,v) :: acc) tbl []
 let find_default default tbl k = try find tbl k with Not_found -> default
+let uncurry_find tbl k1 k2 = find (find tbl k1) k2
 end;;
 
 module ExtendSet = functor (SetModule : Set.S) ->

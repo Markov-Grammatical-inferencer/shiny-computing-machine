@@ -101,8 +101,19 @@ type elt = TS.elt
 (* module TokenSet = Set.Make(struct type t = elt let compare = TS.compare end) *)
 module LRItemSet = ExtendSet(Set.Make(struct type t = elt lr_item let compare = compare end))
 module LRItemSetSet = ExtendSet(Set.Make(LRItemSet))
-type 'a parse_action = Shift of LRItemSet.t * 'a symbol | Reduce of 'a production | Accept;;
+type 'a parse_action = Shift of LRItemSet.t * 'a symbol | Reduce of 'a production | Accept | Reject;;
+
 module ParseActionSet = ExtendSet(Set.Make(struct type t = elt parse_action let compare = compare end))
+
+let string_of_action act =
+    let spf = Printf.sprintf in 
+    let symstr = string_of_symbol TS.string_of in
+    match act with
+    | Shift(_, sym) -> spf "Shift %s " (symstr sym)
+    | Reduce((lhs, rhs)) -> spf "Reduce by %s ->%s" (symstr lhs) (List.fold_left (fun acc elem -> acc ^ " " ^ elem) "" (List.map symstr rhs))
+    | Accept -> "Accept"
+    | Reject -> "Reject"
+
 (* type parser_automaton_state = PA_State of (elt symbol, parser_automaton_state) Hashtbl.t *)
 
 (* LRItemSets are used directly instead of integers representing an index (unlike both wikipedia and the textbook); this may need to be optimized later *)
@@ -189,12 +200,15 @@ let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.
 let make_parser : (elt grammar -> (t -> elt tree list)) = fun gram ->
     let action_table, goto_table = make_action_and_goto_tables gram (make_transitions_table gram) in
     fun input ->
-    let initial_state = PSE(((get_initial_state gram), Start_symbol), None) in
+    let initial_state = PSE(((get_initial_state gram), (get_token input 0)), None) in
     let parse_stacks = Queue.create () in
     Queue.add initial_state parse_stacks;
     while (not (Queue.is_empty parse_stacks)) do
         let PSE((cur_state, cur_sym), parent) = Queue.pop parse_stacks in
-        Printf.printf "%s\n%!" (string_of_symbol TS.string_of cur_sym)
+        Printf.printf "%s\n%!" (string_of_symbol TS.string_of cur_sym);
+        let actions = Hashtbl.find_default (ParseActionSet.of_list [Reject]) action_table (cur_state, cur_sym) in 
+        ParseActionSet.iter (fun elem -> Printf.printf "%s; %!" (string_of_action elem)) actions;
+        Printf.printf "\n%!"
     done;
     []
 
