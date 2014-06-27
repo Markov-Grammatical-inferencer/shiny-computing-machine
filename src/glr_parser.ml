@@ -204,6 +204,7 @@ let make_transitions_table gram =
     done;
     transitions
 
+(* possibly optimize to set later, to remove duplicates *)
 let all_syms_of_production (lhs, rhs) = lhs :: rhs
 let all_syms_of_grammar gram = List.fold_left (@) [] (List.map all_syms_of_production gram)
 
@@ -261,10 +262,18 @@ let make_parser : (elt grammar -> (t -> elt tree list)) = fun gram ->
         Printf.printf "]\n%!";
         ParseActionSet.iter (fun action -> match action with
             | Shift((state, sym)) -> Queue.push (PSE((state, sym), Some(current_pse))) parse_stacks
-            | Reduce(prod) -> LRItemSetSet.iter (fun gotostate -> ()) (Hashtbl.find_default LRItemSetSet.empty goto_table (cur_state, cur_sym))
+            | Reduce((lhs, rhs)) ->
+                (match parent with
+                | Some(PSE((parent_state, _), _)) ->
+                    (* Printf.printf "Reducing by %s (cur_state is %d)\n%!" (string_of_production (lhs, rhs)) (get_state_number gram cur_state); *)
+                    LRItemSetSet.iter (fun gotostate ->
+                        (Queue.push (PSE((gotostate, cur_sym), parent)) parse_stacks)
+                    ) (Hashtbl.find_default LRItemSetSet.empty goto_table (parent_state, lhs))
+                | None -> Printf.printf "WARNING: parent is None in a reduce, which is unanticipated.\n%!")
             | Accept -> List.push (unravel_stack_to_tree current_pse) result_trees
             | Reject -> ()
-        ) actions
+        ) actions;
+        Printf.printf "Queue size: %d\n%!" (Queue.length parse_stacks)
     done;
     !result_trees
 
@@ -299,7 +308,7 @@ Printf.printf "%s" aprint;;
 (* Hashtbl.list_of (Hashtbl.map (fun (k1, k2) v -> ((LRItemSet.elements k1, k2), ParseActionSet.elements v)) atbl);; *)
 
 let p = make_parser simple_operator_grammar;;
-p [|"0";"+";"0"|];;
+p [|"1";"+";"1"|];;
 *)
 
 (*
