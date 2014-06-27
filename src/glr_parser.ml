@@ -101,7 +101,7 @@ type elt = TS.elt
 (* module TokenSet = Set.Make(struct type t = elt let compare = TS.compare end) *)
 module LRItemSet = ExtendSet(Set.Make(struct type t = elt lr_item let compare = compare end))
 module LRItemSetSet = ExtendSet(Set.Make(LRItemSet))
-type 'a parse_action = Shift of LRItemSet.t * 'a symbol | Reduce of 'a production | Accept | Reject;;
+type 'a parse_action = Shift of LRItemSet.t * 'a symbol | Reduce of 'a production | Accept of 'a production | Reject;;
 module ParseActionSet = ExtendSet(Set.Make(struct type t = elt parse_action let compare = compare end))
 (* type parser_automaton_state = PA_State of (elt symbol, parser_automaton_state) Hashtbl.t *)
 
@@ -112,7 +112,7 @@ type transition_table = (LRItemSet.t, (elt symbol, LRItemSet.t) Hashtbl.t) Hasht
 type parse_state = LRItemSet.t * elt symbol
 type action_table = (parse_state, ParseActionSet.t) Hashtbl.t
 type goto_table = (parse_state, LRItemSetSet.t) Hashtbl.t
-type parse_stack_entry = PSE of parse_state * (parse_stack_entry option) (* state, parent_pointer (which is None for the initial state) *)
+type parse_stack_entry = PSE of parse_state * elt production list * parse_stack_entry option (* state, reductions (for reconstructing tree), parent_pointer (which is None for the initial state) *)
 
 let get_state_number =
     let counter = ref (-1) in
@@ -134,11 +134,11 @@ let string_of_action act =
     match act with
     | Shift(_, sym) -> spf "Shift %s" (symstr sym)
     | Reduce(prod) -> spf "Reduce by %s" (string_of_production prod)
-    | Accept -> "Accept"
+    | Accept(prod) -> spf "Accept(%s)" (string_of_production prod)
     | Reject -> "Reject"
 
-let rec string_of_pse gram (PSE((set, sym), parent)) =
-    let cur = Printf.sprintf "((%d, %s)" (get_state_number gram set) (string_of_symbol sym) in
+let rec string_of_pse gram (PSE((set, sym), prods, parent)) =
+    let cur = Printf.sprintf "((%d, %s), %s" (get_state_number gram set) (string_of_symbol sym) (List.string_of string_of_production prods) in
     (match parent with
     | Some(p) -> Printf.sprintf "%s, %s)" cur (string_of_pse gram p)
     | None -> Printf.sprintf "%s)" cur)
@@ -228,7 +228,7 @@ let make_action_and_goto_tables gram trans_table =
         ) oldset [] in
         (* Printf.printf "reduces list for state %d is %s\n%!" (get_state_number gram oldset) (List.string_of string_of_action reduces); *)
         List.iter (fun sym -> List.iter (aadd (oldset, sym)) reduces) (all_syms_of_grammar gram);
-        if LRItemSet.exists (fun lritem -> match lritem with (Start_symbol, _, []) -> true | _ -> false) oldset then aadd (oldset, End_of_input) Accept;
+        LRItemSet.iter (fun lritem -> match lritem with (Start_symbol, rhs, []) -> aadd (oldset, End_of_input) (Accept((Start_symbol, rhs))) | _ -> ()) oldset;
         Hashtbl.iter (fun sym newset ->
             (match sym with
             | Nonterminal(nt) -> gadd (oldset, sym) newset
@@ -241,18 +241,26 @@ let make_action_and_goto_tables gram trans_table =
 
 let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
 
-let make_parser : (elt grammar -> (t -> elt tree list)) = fun gram ->
+let tree_of_prodlist prodlist =
+        let rec helper prods lastsym =
+            Printf.printf "%s\n%!" (List.string_of string_of_production prods);
+            match prods with 
+            | (lhs, rhs) :: _ -> [(Node(lhs, helper (List.tl prods) lhs))]
+            | [] -> []
+        in List.hd(helper prodlist Start_symbol)
+
+let make_parser : (elt grammar -> (t -> elt symbol tree list)) = fun gram ->
     let action_table, goto_table = make_action_and_goto_tables gram (make_transitions_table gram) in
     fun input ->
     let input_pos = ref 0 in
-    let initial_state = PSE(((get_initial_state gram), (get_token input 0)), None) in
+    let initial_state = PSE(((get_initial_state gram), (get_token input 0)), [], None) in
     let result_trees = ref [] in
     let parse_stacks = Queue.create () in
     Queue.add initial_state parse_stacks;
-    let unravel_stack_to_tree stack = Node(TS.get input 0,[]) in (* replace this with actual linked-list traversal later *)
+    let unravel_stack_to_tree (PSE((_, _), prods, _)) = tree_of_prodlist prods in
     while (not (Queue.is_empty parse_stacks)) do
         let current_pse = Queue.pop parse_stacks in
-        let PSE((cur_state, _), parent) = current_pse in
+        let PSE((cur_state, _), cur_prods, parent) = current_pse in
         let cur_sym = get_token input !input_pos in
         input_pos += 1;
         Printf.printf "Current parse_stack_entry: %s\n%!" (string_of_pse gram current_pse);
@@ -262,16 +270,16 @@ let make_parser : (elt grammar -> (t -> elt tree list)) = fun gram ->
         ParseActionSet.iter (fun elem -> Printf.printf "%s; %!" (string_of_action elem)) actions;
         Printf.printf "]\n%!";
         ParseActionSet.iter (fun action -> match action with
-            | Shift((state, sym)) -> Queue.push (PSE((state, sym), Some(current_pse))) parse_stacks
+            | Shift((state, sym)) -> Queue.push (PSE((state, sym), cur_prods, Some(current_pse))) parse_stacks
             | Reduce((lhs, rhs)) ->
                 (match parent with
-                | Some(PSE((parent_state, _), _)) ->
+                | Some(PSE((parent_state, _), _, _)) ->
                     (* Printf.printf "Reducing by %s (cur_state is %d)\n%!" (string_of_production (lhs, rhs)) (get_state_number gram cur_state); *)
                     LRItemSetSet.iter (fun gotostate ->
-                        (Queue.push (PSE((gotostate, cur_sym), parent)) parse_stacks)
+                        (Queue.push (PSE((gotostate, cur_sym), (lhs, rhs) :: cur_prods, parent)) parse_stacks)
                     ) (Hashtbl.find_default LRItemSetSet.empty goto_table (parent_state, lhs))
                 | None -> Printf.printf "WARNING: parent is None in a reduce, which is unanticipated.\n%!")
-            | Accept -> List.push (unravel_stack_to_tree current_pse) result_trees
+            | Accept(prod) -> List.push (unravel_stack_to_tree (PSE((cur_state, cur_sym), prod :: cur_prods, Some(current_pse)))) result_trees
             | Reject -> ()
         ) actions;
         Printf.printf "Queue size: %d\n%!" (Queue.length parse_stacks)
