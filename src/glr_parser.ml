@@ -204,26 +204,35 @@ let make_transitions_table gram =
     done;
     transitions
 
+let all_syms_of_production (lhs, rhs) = lhs :: rhs
+let all_syms_of_grammar gram = List.fold_left (@) [] (List.map all_syms_of_production gram)
+
 let make_action_and_goto_tables gram trans_table =
     let atbl : action_table = Hashtbl.create 0 in
     let gtbl : goto_table = Hashtbl.create 0 in
     let aget = Hashtbl.find_default ParseActionSet.empty atbl in
     let gget = Hashtbl.find_default LRItemSetSet.empty gtbl in
     let aadd k v = Hashtbl.replace atbl k (ParseActionSet.add v (aget k)) in
+    (* let aadd (k1, k2) v = (* debug printing *) *)
+        (* aadd (k1, k2) v; *)
+        (* Printf.printf "adding %s for (%d, %s) in action table\n%!" *)
+        (* (string_of_action v) (get_state_number gram k1) (string_of_symbol k2) in *)
     let gadd k v = Hashtbl.replace gtbl k (LRItemSetSet.add v (gget k)) in
     Hashtbl.iter (fun oldset sym_to_newset ->
         let reduces = LRItemSet.fold (fun elem acc ->
+            (* Printf.printf "considering %s for reduction\n%!" (string_of_lritem elem); *)
             match elem with
             | (lhs, rhs, []) -> (Reduce((lhs, rhs))) :: acc
             | _ -> acc
         ) oldset [] in
+        (* Printf.printf "reduces list for state %d is %s\n%!" (get_state_number gram oldset) (List.string_of string_of_action reduces); *)
+        List.iter (fun sym -> List.iter (aadd (oldset, sym)) reduces) (all_syms_of_grammar gram);
         Hashtbl.iter (fun sym newset ->
             (match sym with
             | Nonterminal(nt) -> gadd (oldset, sym) newset
             | Terminal(t) -> aadd (oldset, sym) (Shift(newset, sym))
             | Start_symbol -> ()
-            | End_of_input -> ());
-            List.iter (aadd (oldset, sym)) reduces
+            | End_of_input -> ())
         ) sym_to_newset
     ) trans_table;
     (atbl, gtbl)
