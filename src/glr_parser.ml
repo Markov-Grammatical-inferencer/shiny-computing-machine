@@ -102,19 +102,7 @@ type elt = TS.elt
 module LRItemSet = ExtendSet(Set.Make(struct type t = elt lr_item let compare = compare end))
 module LRItemSetSet = ExtendSet(Set.Make(LRItemSet))
 type 'a parse_action = Shift of LRItemSet.t * 'a symbol | Reduce of 'a production | Accept | Reject;;
-
 module ParseActionSet = ExtendSet(Set.Make(struct type t = elt parse_action let compare = compare end))
-
-let string_of_action act =
-    let spf = Printf.sprintf in 
-    let symstr = string_of_symbol TS.string_of in
-    let string_of_production (lhs, rhs) = spf "%s ->%s" (symstr lhs) (List.fold_left (fun acc elem -> acc ^ " " ^ elem) "" (List.map symstr rhs)) in
-    match act with
-    | Shift(_, sym) -> spf "Shift %s " (symstr sym)
-    | Reduce(prod) -> spf "Reduce by %s" (string_of_production prod)
-    | Accept -> "Accept"
-    | Reject -> "Reject"
-
 (* type parser_automaton_state = PA_State of (elt symbol, parser_automaton_state) Hashtbl.t *)
 
 (* LRItemSets are used directly instead of integers representing an index (unlike both wikipedia and the textbook); this may need to be optimized later *)
@@ -124,6 +112,44 @@ type transition_table = (LRItemSet.t, (elt symbol, LRItemSet.t) Hashtbl.t) Hasht
 type parse_state = LRItemSet.t * elt symbol
 type action_table = (parse_state, ParseActionSet.t) Hashtbl.t
 type goto_table = (parse_state, LRItemSetSet.t) Hashtbl.t
+type parse_stack_entry = PSE of parse_state * (parse_stack_entry option) (* state, parent_pointer (which is None for the initial state) *)
+
+let get_state_number =
+    let counter = ref (-1) in
+    let tbl = Hashtbl.create 0 in
+    (fun gram set ->
+        try Hashtbl.find tbl (gram, set)
+        with Not_found ->
+            counter += 1;
+            Hashtbl.add tbl (gram, set) !counter;
+            !counter)
+
+let string_of_symbol = string_of_symbol TS.string_of
+let string_of_production (lhs, rhs) = Printf.sprintf "|%s -> %s|" (string_of_symbol lhs) (List.string_of string_of_symbol rhs)
+let string_of_lritem (lhs, rhs1, rhs2) = Printf.sprintf "|%s -> %s <.> %s|" (string_of_symbol lhs) (List.string_of string_of_symbol rhs1) (List.string_of string_of_symbol rhs2)
+
+let string_of_action act =
+    let spf = Printf.sprintf in 
+    let symstr = string_of_symbol in
+    match act with
+    | Shift(_, sym) -> spf "Shift %s " (symstr sym)
+    | Reduce(prod) -> spf "Reduce by %s" (string_of_production prod)
+    | Accept -> "Accept"
+    | Reject -> "Reject"
+
+let rec string_of_pse gram (PSE((set, sym), parent)) =
+    let cur = Printf.sprintf "((%d, %s)" (get_state_number gram set) (string_of_symbol sym) in
+    (match parent with
+    | Some(p) -> Printf.sprintf "%s, %s)" cur (string_of_pse gram p)
+    | None -> Printf.sprintf "%s)" cur)
+
+let (string_of_action_table, string_of_goto_table) =
+    let string_of_ag_table string_of_result gram tbl =
+        let result = ref "State\tSymbol\tResult\n" in
+        Hashtbl.iter (fun (set, sym) res ->
+            result ^= Printf.sprintf "%d\t%s\t%s\n" (get_state_number gram set) (string_of_symbol sym) (string_of_result res)
+        ) tbl; !result in
+    (string_of_ag_table (ParseActionSet.string_of string_of_action), string_of_ag_table (LRItemSetSet.string_of (LRItemSet.string_of string_of_lritem)))
 
 let lritems_starting_with gram sym = List.map lritem_of_production (List.find_all (fun (prod_lhs,_) -> prod_lhs = sym) gram)
 
@@ -193,9 +219,6 @@ let make_action_and_goto_tables gram trans_table =
     ) trans_table;
     (atbl, gtbl)
 
-(* module ParseStateStackSet = MakeStackSet(struct type t = parse_state end) *)
-type parse_stack_entry = PSE of parse_state * (parse_stack_entry option) (* state, parent_pointer (which is None for the initial state) *)
-
 let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
 
 let make_parser : (elt grammar -> (t -> elt tree list)) = fun gram ->
@@ -203,19 +226,21 @@ let make_parser : (elt grammar -> (t -> elt tree list)) = fun gram ->
     fun input ->
     let input_pos = ref 0 in
     let initial_state = PSE(((get_initial_state gram), (get_token input 0)), None) in
-    let unravel_stack_to_tree stack = Node(TS.get input 0,[]) in (* replace this with actual linked-list traversal later *)
     let result_trees = ref [] in
     let parse_stacks = Queue.create () in
     Queue.add initial_state parse_stacks;
+    let unravel_stack_to_tree stack = Node(TS.get input 0,[]) in (* replace this with actual linked-list traversal later *)
     while (not (Queue.is_empty parse_stacks)) do
         let current_pse = Queue.pop parse_stacks in
         let PSE((cur_state, _), parent) = current_pse in
         let cur_sym = get_token input !input_pos in
         input_pos += 1;
-        Printf.printf "%s\n%!" (string_of_symbol TS.string_of cur_sym);
+        Printf.printf "Current parse_stack_entry: %s\n%!" (string_of_pse gram current_pse);
+        Printf.printf "Read token: %s\n%!" (string_of_symbol cur_sym);
         let actions = Hashtbl.find_default (ParseActionSet.of_list [Reject]) action_table (cur_state, cur_sym) in 
+        Printf.printf "About to perform: [%!";
         ParseActionSet.iter (fun elem -> Printf.printf "%s; %!" (string_of_action elem)) actions;
-        Printf.printf "\n%!";
+        Printf.printf "]\n%!";
         ParseActionSet.iter (fun action -> match action with
             | Shift((state, sym)) -> Queue.push (PSE((state, sym), Some(current_pse))) parse_stacks
             | Reduce(prod) -> LRItemSetSet.iter (fun gotostate -> ()) (Hashtbl.find_default LRItemSetSet.empty goto_table (cur_state, cur_sym))
@@ -235,6 +260,10 @@ let flatten_transitions_table (tbl : transition_table) =
 
 end;;
 
+let main () =
+    let module P = Make(StringArray) in
+    let p = P.make_parser simple_operator_grammar in
+    p [|"1";"+";"1"|];;
 (*
 #load "scm_util.cmo";;
 #load "glr_parser.cmo";;
@@ -243,8 +272,10 @@ open Glr_parser;;
 module P = Make(StringArray);;
 open P;;
 
-(* let a = make_transitions_table simple_operator_grammar;; *)
-(* let (atbl, gtbl) = make_action_and_goto_tables simple_operator_grammar a;; *)
+let a = make_transitions_table simple_operator_grammar;;
+let (atbl, gtbl) = make_action_and_goto_tables simple_operator_grammar a;;
+let (aprint, gprint) = (string_of_action_table simple_operator_grammar atbl, string_of_goto_table simple_operator_grammar gtbl);;
+Printf.printf "%s" aprint;;
 (* Hashtbl.list_of (Hashtbl.map (fun (k1, k2) v -> ((LRItemSet.elements k1, k2), ParseActionSet.elements v)) atbl);; *)
 
 let p = make_parser simple_operator_grammar;;

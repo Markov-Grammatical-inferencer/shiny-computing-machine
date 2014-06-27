@@ -16,12 +16,15 @@ let next_pow2 x =
         if y = 0 then acc else helper (y/2) (acc*2) in
     helper (x-1) 1;;
 
+let swapargs fn x y = fn y x;;
 let clamp lo hi x = max lo (min x hi);;
 let inplace fn xref = xref := (fn !xref);;
 let inplace2 fn (xr1,xr2) = let (a,b) = fn (!xr1,!xr2) in xr1 := a; xr2 := b;;
 
 let (+=) x a = inplace ((+) a) x;;
 let (+.=) x a = inplace ((+.) a) x;;
+let (^=) x a = inplace ((swapargs (^)) a) x;;
+let (@=) x a = inplace ((swapargs (@)) a) x;;
 
 let identity x = x;;
 let compose f g x = f (g x);;
@@ -67,6 +70,7 @@ let cdr = tl
 let cons x y = x :: y
 let push x = inplace (cons x)
 let pop lr = let x = car !lr in inplace cdr lr; x
+let string_of string_of_t l = Printf.sprintf "%s]" (List.fold_left (fun acc elem -> acc ^ elem ^ ";") "[" (List.map string_of_t l))
 end;;
 
 module Hashtbl =
@@ -106,6 +110,8 @@ let set_closure_imp (fn : elt -> elt list) set =
         let new_set = union elems_to_add acc in
         if (compare acc new_set) = 0 then new_set else helper elems_to_add new_set
     in helper set set
+
+let string_of string_of_t set = List.string_of string_of_t (elements set)
 end;;
 
 (* despite the name, use lists internally, because of mutability concerns *)
