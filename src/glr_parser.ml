@@ -132,7 +132,7 @@ let string_of_action act =
     let spf = Printf.sprintf in 
     let symstr = string_of_symbol in
     match act with
-    | Shift(_, sym) -> spf "Shift %s " (symstr sym)
+    | Shift(_, sym) -> spf "Shift %s" (symstr sym)
     | Reduce(prod) -> spf "Reduce by %s" (string_of_production prod)
     | Accept -> "Accept"
     | Reject -> "Reject"
@@ -142,6 +142,14 @@ let rec string_of_pse gram (PSE((set, sym), parent)) =
     (match parent with
     | Some(p) -> Printf.sprintf "%s, %s)" cur (string_of_pse gram p)
     | None -> Printf.sprintf "%s)" cur)
+
+let string_of_transition_table gram tbl =
+    let spf = Printf.sprintf in
+    let result = ref "State\tSymbol\tNew State\n" in
+    Hashtbl.iter (fun state sym_to_newstate ->
+        result ^= spf "%d\n" (get_state_number gram state);
+        Hashtbl.iter (fun sym newstate -> result ^= spf "\t%s\t%d\n" (string_of_symbol sym) (get_state_number gram newstate)) sym_to_newstate
+    ) tbl; !result
 
 let (string_of_action_table, string_of_goto_table) =
     let string_of_ag_table string_of_result gram tbl =
@@ -189,6 +197,7 @@ let make_transitions_table gram =
     while (not (Stack.is_empty dfs_stack)) do
         let cur_set = (Stack.pop dfs_stack) in
         if Hashtbl.contains_key cur_set transitions then () else (* guard clause to prevent cycles in search graph *)
+        ignore(get_state_number gram cur_set); (* assign all the numbers here, for determinism *)
         let transitions_from_cur = transitions_from_state gram cur_set in
         Hashtbl.add transitions cur_set transitions_from_cur;
         Hashtbl.iter (fun k v -> Stack.push v dfs_stack) transitions_from_cur
@@ -272,9 +281,11 @@ open Glr_parser;;
 module P = Make(StringArray);;
 open P;;
 
-let a = make_transitions_table simple_operator_grammar;;
-let (atbl, gtbl) = make_action_and_goto_tables simple_operator_grammar a;;
-let (aprint, gprint) = (string_of_action_table simple_operator_grammar atbl, string_of_goto_table simple_operator_grammar gtbl);;
+let gram = simple_operator_grammar;;
+let a = make_transitions_table gram;;
+let (atbl, gtbl) = make_action_and_goto_tables gram a;;
+let trprint = string_of_transition_table gram a;;
+let (aprint, gprint) = (string_of_action_table gram atbl, string_of_goto_table gram gtbl);;
 Printf.printf "%s" aprint;;
 (* Hashtbl.list_of (Hashtbl.map (fun (k1, k2) v -> ((LRItemSet.elements k1, k2), ParseActionSet.elements v)) atbl);; *)
 
