@@ -27,6 +27,7 @@ let show_parse_tree tr =
     let (draw_tree,_) = make_tree_drawer tr in
         with_opengl_context "Parse Tree" (draw_tree 0. 0. 0.);;
 
+(*
 show_parse_tree
 (Node("S",
     [Node("NP",
@@ -41,3 +42,11 @@ show_parse_tree
         )]
     )]
 ));;
+*)
+
+module P = Make(StringArray);;
+open P;;
+
+(* let p = make_parser simple_imperative_grammar;; *)
+let p = make_parser simple_operator_grammar;;
+show_parse_tree (convert_tree (compose string_of_symbol StringArray.string_of) (List.hd (p simple_operator_example)));;

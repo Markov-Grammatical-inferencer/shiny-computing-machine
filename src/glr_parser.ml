@@ -14,6 +14,7 @@ open Scm_util;;
 
 type 'a tree = Node of ('a * ('a tree list));;
 
+let rec convert_tree : (('a -> 'b) -> 'a tree -> 'b tree) = fun eltconvert (Node(node, children)) -> Node(eltconvert node, List.map (convert_tree eltconvert) children);;
 (* Node("S",[Node("NP",[Node("NN",[Node("I",[])])]);Node("VP",[Node("VBZ",[Node("am",[])])])]);;*)
 
 module type TokenStream =
@@ -76,6 +77,9 @@ Nonterminal "add_op", [Terminal "-"];
 Nonterminal "mult_op", [Terminal "*"];
 Nonterminal "mult_op", [Terminal "/"];
 ];;
+(* From page 72 *)
+(* let simple_imperative_example = ["read";"A";"read";"B";"sum";":=";"A";"+";"B";"write";"sum";"write";"sum";"/";"2"];; *)
+let simple_imperative_example = [|"read";"id";"read";"id";"id";":=";"id";"+";"id";"write";"id";"write";"id";"/";"2"|];;
 
 (* http://en.wikipedia.org/wiki/LR_parser *)
 let simple_operator_grammar =
@@ -87,6 +91,7 @@ Nonterminal "E", [Nonterminal "B"];
 Nonterminal "B", [Terminal "0"];
 Nonterminal "B", [Terminal "1"];
 ];;
+let simple_operator_example = [|"1";"+";"1"|];;
 
 let lritem_of_production (lhs,rhs) = (lhs,[],rhs);;
 
