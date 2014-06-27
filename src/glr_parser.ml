@@ -228,6 +228,7 @@ let make_action_and_goto_tables gram trans_table =
         ) oldset [] in
         (* Printf.printf "reduces list for state %d is %s\n%!" (get_state_number gram oldset) (List.string_of string_of_action reduces); *)
         List.iter (fun sym -> List.iter (aadd (oldset, sym)) reduces) (all_syms_of_grammar gram);
+        if LRItemSet.exists (fun lritem -> match lritem with (Start_symbol, _, []) -> true | _ -> false) oldset then aadd (oldset, End_of_input) Accept;
         Hashtbl.iter (fun sym newset ->
             (match sym with
             | Nonterminal(nt) -> gadd (oldset, sym) newset
