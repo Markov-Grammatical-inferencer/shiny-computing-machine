@@ -160,9 +160,9 @@ let (string_of_action_table, string_of_goto_table) =
     let string_of_ag_table string_of_result gram tbl =
         let result = ref "State\tSymbol\tResult\n" in
         Hashtbl.iter (fun (set, sym) res ->
-            result ^= Printf.sprintf "%d\t%s\t%s\n" (get_state_number gram set) (string_of_symbol sym) (string_of_result res)
+            result ^= Printf.sprintf "%d\t%s\t%s\n" (get_state_number gram set) (string_of_symbol sym) (string_of_result gram res)
         ) tbl; !result in
-    (string_of_ag_table (ParseActionSet.string_of string_of_action), string_of_ag_table (LRItemSetSet.string_of (LRItemSet.string_of string_of_lritem)))
+    (string_of_ag_table (fun gram -> (ParseActionSet.string_of string_of_action)), string_of_ag_table (fun gram -> LRItemSetSet.string_of (fun set -> Printf.sprintf "%d" (get_state_number gram set)))(*LRItemSetSet.string_of (LRItemSet.string_of string_of_lritem)*))
 
 let lritems_starting_with gram sym = List.map lritem_of_production (List.find_all (fun (prod_lhs,_) -> prod_lhs = sym) gram)
 
@@ -197,15 +197,15 @@ let get_initial_state gram = (closure_of_list gram (lritems_starting_with gram S
 
 let make_transitions_table gram = 
     let transitions : transition_table = Hashtbl.create 0 in
-    let dfs_stack = Stack.create () in
-    Stack.push (get_initial_state gram) dfs_stack;
-    while (not (Stack.is_empty dfs_stack)) do
-        let cur_set = (Stack.pop dfs_stack) in
+    let bfs_queue = Queue.create () in (* initially used dfs, swapping to bfs yields (mostly) wikipedia's numbers for the operator grammar example *)
+    Queue.push (get_initial_state gram) bfs_queue;
+    while (not (Queue.is_empty bfs_queue)) do
+        let cur_set = (Queue.pop bfs_queue) in
         if Hashtbl.contains_key cur_set transitions then () else (* guard clause to prevent cycles in search graph *)
         ignore(get_state_number gram cur_set); (* assign all the numbers here, for determinism *)
         let transitions_from_cur = transitions_from_state gram cur_set in
         Hashtbl.add transitions cur_set transitions_from_cur;
-        Hashtbl.iter (fun k v -> Stack.push v dfs_stack) transitions_from_cur
+        Hashtbl.iter (fun k v -> Queue.push v bfs_queue) transitions_from_cur
     done;
     transitions
 
@@ -281,6 +281,7 @@ let make_parser : (elt grammar -> (t -> elt symbol tree list)) = fun gram ->
                 | Some(PSE((parent_state, _), _, _)) ->
                     (* Printf.printf "Reducing by %s (cur_state is %d)\n%!" (string_of_production (lhs, rhs)) (get_state_number gram cur_state); *)
                     LRItemSetSet.iter (fun gotostate ->
+                        Printf.printf "cur %d, parent %d, goto %d\n%!" (get_state_number gram cur_state) (get_state_number gram parent_state) (get_state_number gram gotostate);
                         (Queue.push (PSE((gotostate, cur_sym), (lhs, rhs) :: cur_prods, parent)) parse_stacks)
                     ) (Hashtbl.find_default LRItemSetSet.empty goto_table (parent_state, lhs))
                 | None -> Printf.printf "WARNING: parent is None in a reduce, which is unanticipated.\n%!")
@@ -312,6 +313,8 @@ open Scm_util;;
 open Glr_parser;;
 module P = Make(StringArray);;
 open P;;
+let p = make_parser simple_operator_grammar;;
+p [|"1";"+";"1"|];;
 
 let gram = simple_operator_grammar;;
 let a = make_transitions_table gram;;
