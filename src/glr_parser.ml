@@ -232,7 +232,7 @@ let make_action_and_goto_tables gram trans_table =
             | _ -> acc
         ) oldset [] in
         (* Printf.printf "reduces list for state %d is %s\n%!" (get_state_number gram oldset) (List.string_of string_of_action reduces); *)
-        List.iter (fun sym -> List.iter (aadd (oldset, sym)) reduces) (all_syms_of_grammar gram);
+        List.iter (fun sym -> List.iter (aadd (oldset, sym)) reduces) (List.cons End_of_input (all_syms_of_grammar gram));
         LRItemSet.iter (fun lritem -> match lritem with (Start_symbol, rhs, []) -> aadd (oldset, End_of_input) (Accept((Start_symbol, rhs))) | _ -> ()) oldset;
         Hashtbl.iter (fun sym newset ->
             (match sym with
@@ -254,6 +254,13 @@ let tree_of_prodlist prodlist =
             | [] -> []
         in List.hd(helper prodlist Start_symbol)
 
+let rec nth_predecessor_of_pse n pse =
+    if n > 0 then
+        (match pse with
+        | Some(PSE((_, _), _, parent)) -> nth_predecessor_of_pse (n-1) parent
+        | None -> None)
+    else pse
+
 let make_parser : (elt grammar -> (t -> elt symbol tree list)) = fun gram ->
     let action_table, goto_table = make_action_and_goto_tables gram (make_transitions_table gram) in
     fun input ->
@@ -267,28 +274,28 @@ let make_parser : (elt grammar -> (t -> elt symbol tree list)) = fun gram ->
         let current_pse = Queue.pop parse_stacks in
         let PSE((cur_state, _), cur_prods, parent) = current_pse in
         let cur_sym = get_token input !input_pos in
-        input_pos += 1;
-        Printf.printf "Current parse_stack_entry: %s\n%!" (string_of_pse gram current_pse);
-        Printf.printf "Read token: %s\n%!" (string_of_symbol cur_sym);
+        (* Printf.printf "Current parse_stack_entry: %s\n%!" (string_of_pse gram current_pse); *)
+        (* Printf.printf "Read token: %s\n%!" (string_of_symbol cur_sym); *)
         let actions = Hashtbl.find_default (ParseActionSet.of_list [Reject]) action_table (cur_state, cur_sym) in 
         Printf.printf "About to perform: [%!";
         ParseActionSet.iter (fun elem -> Printf.printf "%s; %!" (string_of_action elem)) actions;
         Printf.printf "]\n%!";
         ParseActionSet.iter (fun action -> match action with
-            | Shift((state, sym)) -> Queue.push (PSE((state, sym), cur_prods, Some(current_pse))) parse_stacks
+            | Shift((state, sym)) -> Queue.push (PSE((state, sym), cur_prods, Some(current_pse))) parse_stacks; input_pos += 1
             | Reduce((lhs, rhs)) ->
-                (match parent with
+                let grandparent = nth_predecessor_of_pse (List.length rhs) (Some(current_pse)) in
+                (match grandparent with
                 | Some(PSE((parent_state, _), _, _)) ->
                     (* Printf.printf "Reducing by %s (cur_state is %d)\n%!" (string_of_production (lhs, rhs)) (get_state_number gram cur_state); *)
                     LRItemSetSet.iter (fun gotostate ->
-                        Printf.printf "cur %d, parent %d, goto %d\n%!" (get_state_number gram cur_state) (get_state_number gram parent_state) (get_state_number gram gotostate);
-                        (Queue.push (PSE((gotostate, cur_sym), (lhs, rhs) :: cur_prods, parent)) parse_stacks)
-                    ) (Hashtbl.find_default LRItemSetSet.empty goto_table (parent_state, lhs))
+                        (* Printf.printf "cur %d, parent %d, goto %d\n%!" (get_state_number gram cur_state) (get_state_number gram parent_state) (get_state_number gram gotostate); *)
+                        (Queue.push (PSE((gotostate, cur_sym), (lhs, rhs) :: cur_prods, grandparent)) parse_stacks)
+                    ) (Hashtbl.find_default LRItemSetSet.empty goto_table (parent_state, lhs));
                 | None -> Printf.printf "WARNING: parent is None in a reduce, which is unanticipated.\n%!")
             | Accept(prod) -> List.push (unravel_stack_to_tree (PSE((cur_state, cur_sym), prod :: cur_prods, Some(current_pse)))) result_trees
             | Reject -> ()
         ) actions;
-        Printf.printf "Queue size: %d\n%!" (Queue.length parse_stacks)
+        (* Printf.printf "Queue size: %d\n%!" (Queue.length parse_stacks) *)
     done;
     !result_trees
 
