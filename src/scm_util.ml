@@ -69,8 +69,10 @@ let car = hd
 let cdr = tl
 let cons x y = x :: y
 let push x = inplace (cons x)
+let push_opt x lr = match x with Some(y) -> inplace (cons y) lr | None -> ()
 let pop lr = let x = car !lr in inplace cdr lr; x
 let string_of string_of_t l = Printf.sprintf "%s]" (List.fold_left (fun acc elem -> acc ^ elem ^ ";") "[" (List.map string_of_t l))
+let of_option = function | Some(x) -> [x] | None -> []
 end;;
 
 module Hashtbl =

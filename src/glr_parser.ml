@@ -257,13 +257,19 @@ let make_action_and_goto_tables gram trans_table =
 
 let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
 
-let tree_of_prodlist prodlist =
-        let rec helper prods lastsym =
-            Printf.printf "%s\n%!" (List.string_of string_of_production prods);
-            match prods with 
-            | (lhs, rhs) :: _ -> [(Node(lhs, helper (List.tl prods) lhs))]
-            | [] -> []
-        in List.hd(helper prodlist Start_symbol)
+(* Still not quite correct, but close *)
+let rec tree_of_prodlist : (elt production list -> elt symbol tree option) = (fun prodlist ->
+    match prodlist with
+    | (lhs, rhs) :: tl ->
+        Some(Node(lhs, (List.fold_left (fun acc elem ->
+            match elem with
+                | Nonterminal(nt) -> (List.of_option (tree_of_prodlist tl)) @ acc
+                | other -> Node(other, []) :: acc
+                (* | [] ->  *)
+            ) [] (List.rev rhs)
+            )))
+    | [] -> None
+)
 
 let rec nth_predecessor_of_pse n pse =
     if n > 0 then
@@ -303,7 +309,7 @@ let make_parser : (elt grammar -> (t -> elt symbol tree list)) = fun gram ->
                         (Queue.push (PSE((gotostate, cur_sym), (lhs, rhs) :: cur_prods, grandparent)) parse_stacks)
                     ) (Hashtbl.find_default LRItemSetSet.empty goto_table (parent_state, lhs));
                 | None -> Printf.printf "WARNING: parent is None in a reduce, which is unanticipated.\n%!")
-            | Accept(prod) -> List.push (unravel_stack_to_tree (PSE((cur_state, cur_sym), prod :: cur_prods, Some(current_pse)))) result_trees
+            | Accept(prod) -> List.push_opt (unravel_stack_to_tree (PSE((cur_state, cur_sym), prod :: cur_prods, Some(current_pse)))) result_trees
             | Reject -> ()
         ) actions;
         (* Printf.printf "Queue size: %d\n%!" (Queue.length parse_stacks) *)
