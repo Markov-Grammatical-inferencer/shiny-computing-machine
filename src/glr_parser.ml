@@ -15,6 +15,11 @@ open Scm_util;;
 type 'a tree = Node of ('a * ('a tree list));;
 
 let rec convert_tree : (('a -> 'b) -> 'a tree -> 'b tree) = fun eltconvert (Node(node, children)) -> Node(eltconvert node, List.map (convert_tree eltconvert) children);;
+
+(* Print a tree as a lisp s-expression, for readability. Assumes tree has already been converted to a string tree via convert_tree *)
+let rec sexpr_of_string_tree (Node(cur_node, subtrees)) =
+    Printf.sprintf "(%s%s)" cur_node (List.fold_left (fun acc elem -> acc ^ " " ^ (sexpr_of_string_tree elem)) " " subtrees);;
+
 (* Node("S",[Node("NP",[Node("NN",[Node("I",[])])]);Node("VP",[Node("VBZ",[Node("am",[])])])]);;*)
 
 module type TokenStream =
@@ -52,6 +57,12 @@ let string_of_symbol string_of_type = function
     | Terminal(t) -> "Terminal(" ^ (string_of_type t) ^ ")"
     | Nonterminal(nt) -> "Nonterminal(" ^ nt ^ ")"
     | End_of_input -> "$$";;
+
+let sexpr_string_of_symbol string_of_type = function
+    | Start_symbol -> "S"
+    | Terminal(t) -> string_of_type t
+    | Nonterminal(nt) -> nt
+    | End_of_input -> "$";;
 
 let balanced_paren_grammar = [(Nonterminal "S",[Terminal "(";Nonterminal "S";Terminal ")"]);(Nonterminal "S",[])];; (* Very verbose way of saying S -> "(" S ")" | "" *)
 
@@ -321,7 +332,9 @@ open Glr_parser;;
 module P = Make(StringArray);;
 open P;;
 let p = make_parser simple_operator_grammar;;
-p [|"1";"+";"1"|];;
+let trees = p [|"1";"+";"1"|];;
+let stringtrees = List.map (convert_tree (sexpr_string_of_symbol StringArray.string_of)) trees;;
+let sexprtrees = List.map sexpr_of_string_tree stringtrees;;
 
 let gram = simple_operator_grammar;;
 let a = make_transitions_table gram;;
