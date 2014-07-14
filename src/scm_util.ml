@@ -73,6 +73,11 @@ let push_opt x lr = match x with Some(y) -> inplace (cons y) lr | None -> ()
 let pop lr = let x = car !lr in inplace cdr lr; x
 let string_of string_of_t l = Printf.sprintf "%s]" (List.fold_left (fun acc elem -> acc ^ elem ^ ";") "[" (List.map string_of_t l))
 let of_option = function | Some(x) -> [x] | None -> []
+let mapcan f l = List.fold_left List.append [] (List.map f l)
+let rec pad_to_same_length pad1 pad2 l1 l2 =
+    if      List.length l1 < List.length l2 then pad_to_same_length pad1 pad2 (l1 @ [pad1]) l2
+    else if List.length l2 < List.length l1 then pad_to_same_length pad1 pad2 l1 (l2 @ [pad2])
+    else (l1, l2)
 end;;
 
 module Hashtbl =

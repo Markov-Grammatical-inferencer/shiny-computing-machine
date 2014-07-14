@@ -20,6 +20,7 @@ let rec convert_tree : (('a -> 'b) -> 'a tree -> 'b tree) = fun eltconvert (Node
 let rec sexpr_of_string_tree (Node(cur_node, subtrees)) =
     Printf.sprintf "(%s%s)" cur_node (List.fold_left (fun acc elem -> acc ^ " " ^ (sexpr_of_string_tree elem)) " " subtrees);;
 
+let string_of_tree eltconvert tree = sexpr_of_string_tree (convert_tree eltconvert tree)
 (* Node("S",[Node("NP",[Node("NN",[Node("I",[])])]);Node("VP",[Node("VBZ",[Node("am",[])])])]);;*)
 
 module type TokenStream =
@@ -258,17 +259,41 @@ let make_action_and_goto_tables gram trans_table =
 let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
 
 (* Still not quite correct, but close *)
-let rec tree_of_prodlist : (elt production list -> elt symbol tree option) = (fun prodlist ->
-    match prodlist with
-    | (lhs, rhs) :: tl ->
-        Some(Node(lhs, (List.fold_left (fun acc elem ->
-            match elem with
-                | Nonterminal(nt) -> (List.of_option (tree_of_prodlist tl)) @ acc
-                | other -> Node(other, []) :: acc
-                (* | [] ->  *)
-            ) [] (List.rev rhs)
-            )))
-    | [] -> None
+(* let rec tree_of_prodlist : (elt production list -> elt symbol tree list) = (fun prodlist -> *)
+    (* match prodlist with *)
+    (* | (lhs, rhs) :: tl -> *)
+        (* [Node(lhs, (List.fold_left (fun acc elem -> *)
+            (* match elem with *)
+                (* | Nonterminal(nt) -> (tree_of_prodlist tl) @ acc *)
+                (* | other -> Node(other, []) :: acc *)
+                (* (* | [] ->  *) *)
+            (* ) [] (List.rev rhs) *)
+        (* ))] *)
+    (* | [] -> [] *)
+(* ) *)
+
+(* Seems like it might be closer... *)
+let rec tree_of_prodlist : (elt production list -> elt symbol tree list) = (fun prodlist ->
+    (* (List.fold_left (fun acc (lhs, rhs) -> *)
+    (* Inlining fold_left to help add multiple recursion, which will probably be needed, 'cause trees... *)
+    let rec helper acc prods =
+        match prods with
+        | (lhs, rhs) :: remprods -> (
+            (* Printf.printf "current accumulator is %s\n%!" (List.string_of (List.string_of (string_of_tree string_of_symbol)) acc); *)
+            Printf.printf "current accumulator is %s\n%!" (List.string_of (string_of_tree string_of_symbol) acc);
+            Printf.printf "in tree_of_prodlist: %s\n%!" (string_of_production (lhs, rhs));
+            (* let (padded_rhs, padded_acc) = List.pad_to_same_length End_of_input [] rhs acc in *)
+            helper
+                (List.mapcan (fun s -> match s with
+                | Terminal(t) as sym ->  [Node(sym,[])]
+                | Nonterminal(nt) as sym ->  [Node(sym,acc)]
+                | Start_symbol as sym ->  [Node(sym,acc)]
+                | End_of_input as sym ->  [Node(sym,acc)]
+                ) rhs)
+                remprods
+        | [] -> acc
+    (* ) [] (List.rev prodlist)) *)
+    ) in helper [] (List.rev prodlist)
 )
 
 let rec nth_predecessor_of_pse n pse =
@@ -309,7 +334,8 @@ let make_parser : (elt grammar -> (t -> elt symbol tree list)) = fun gram ->
                         (Queue.push (PSE((gotostate, cur_sym), (lhs, rhs) :: cur_prods, grandparent)) parse_stacks)
                     ) (Hashtbl.find_default LRItemSetSet.empty goto_table (parent_state, lhs));
                 | None -> Printf.printf "WARNING: parent is None in a reduce, which is unanticipated.\n%!")
-            | Accept(prod) -> List.push_opt (unravel_stack_to_tree (PSE((cur_state, cur_sym), prod :: cur_prods, Some(current_pse)))) result_trees
+            (* | Accept(prod) -> List.push_opt (unravel_stack_to_tree (PSE((cur_state, cur_sym), prod :: cur_prods, Some(current_pse)))) result_trees *)
+            | Accept(prod) -> result_trees @= (unravel_stack_to_tree (PSE((cur_state, cur_sym), prod :: cur_prods, Some(current_pse))))
             | Reject -> ()
         ) actions;
         (* Printf.printf "Queue size: %d\n%!" (Queue.length parse_stacks) *)
