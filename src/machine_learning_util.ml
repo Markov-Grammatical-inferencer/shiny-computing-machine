@@ -103,7 +103,21 @@ class FixedRandom:
  Data structures useful for implementing SearchAgents
 """
 
-class Stack:
+class [a']  Stack:
+(*A container with a last-in-first-out (LIFO) queuing policy*)
+object (self)
+    val mutable list = ( [] : 'a list )
+    method push x =
+        list <- x :: list
+    method pop =
+        let result = List.hd list in
+        list <- List.tl list;
+        result
+    method isEmpty =
+         List.length list == 0
+end;;
+
+(*class Stack:
     "A container with a last-in-first-out (LIFO) queuing policy."
     def __init__(self):
         self.list = []
@@ -118,9 +132,25 @@ class Stack:
 
     def isEmpty(self):
         "Returns true if the stack is empty"
-        return len(self.list) == 0
+        return len(self.list) == 0*)
 
-class Queue:
+class ['a] Queue =
+    (*A container with a first-in-first-out (FIFO) queuing policy.*)
+    object (self)
+    val mutable list = ( [] : a' list )
+    method push x =
+        let front, back = !queue in
+            queue := (x::front,back)
+    method pop =
+        match !queue with
+            (front, x :: back) ->
+                queue := (front, back);
+                x
+        | ([], []) ->
+            raise Empty
+    end;;
+
+(*class Queue:
     "A container with a first-in-first-out (FIFO) queuing policy."
     def __init__(self):
         self.list = []
@@ -138,7 +168,7 @@ class Queue:
 
     def isEmpty(self):
         "Returns true if the queue is empty"
-        return len(self.list) == 0
+        return len(self.list) == 0*)
 
 class PriorityQueue:
     """
