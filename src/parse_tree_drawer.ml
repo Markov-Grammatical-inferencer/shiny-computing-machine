@@ -52,4 +52,6 @@ let p = make_parser simple_operator_grammar;;
 let cdr_argv = Array.of_list (List.tl (Array.to_list Sys.argv));;
 (* let thing_to_parse = simple_operator_example;; *)
 let thing_to_parse = cdr_argv;;
-show_parse_tree (convert_tree (compose string_of_symbol StringArray.string_of) (List.hd (p thing_to_parse)));;
+let parse_tree = (convert_tree (compose sexpr_string_of_symbol StringArray.string_of) (List.hd (p thing_to_parse)));;
+Printf.printf "%s\n%!" (sexpr_of_string_tree parse_tree);;
+show_parse_tree parse_tree;;

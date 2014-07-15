@@ -142,6 +142,7 @@ let get_state_number =
             !counter)
 
 let string_of_symbol = string_of_symbol TS.string_of
+let sexpr_string_of_symbol = sexpr_string_of_symbol TS.string_of
 let string_of_production (lhs, rhs) = Printf.sprintf "|%s -> %s|" (string_of_symbol lhs) (List.string_of string_of_symbol rhs)
 let string_of_lritem (lhs, rhs1, rhs2) = Printf.sprintf "|%s -> %s <.> %s|" (string_of_symbol lhs) (List.string_of string_of_symbol rhs1) (List.string_of string_of_symbol rhs2)
 
@@ -258,7 +259,7 @@ let make_action_and_goto_tables gram trans_table =
 
 let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
 
-let rec tree_of_prodlist : (elt production list -> elt symbol tree list) = (fun prodlist ->
+let tree_of_prodlist : (elt production list -> elt symbol tree list) = (fun prodlist ->
     (List.fold_left (fun acc (lhs, rhs) ->
             let string_of_treelist = List.string_of (string_of_tree string_of_symbol) in
             Printf.printf "current accumulator is %s\n%!" (string_of_treelist acc);
