@@ -49,4 +49,7 @@ open P;;
 
 (* let p = make_parser simple_imperative_grammar;; *)
 let p = make_parser simple_operator_grammar;;
-show_parse_tree (convert_tree (compose string_of_symbol StringArray.string_of) (List.hd (p simple_operator_example)));;
+let cdr_argv = Array.of_list (List.tl (Array.to_list Sys.argv));;
+(* let thing_to_parse = simple_operator_example;; *)
+let thing_to_parse = cdr_argv;;
+show_parse_tree (convert_tree (compose string_of_symbol StringArray.string_of) (List.hd (p thing_to_parse)));;
