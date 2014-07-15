@@ -258,33 +258,11 @@ let make_action_and_goto_tables gram trans_table =
 
 let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
 
-(* Still not quite correct, but close *)
-(* let rec tree_of_prodlist : (elt production list -> elt symbol tree list) = (fun prodlist -> *)
-    (* match prodlist with *)
-    (* | (lhs, rhs) :: tl -> *)
-        (* [Node(lhs, (List.fold_left (fun acc elem -> *)
-            (* match elem with *)
-                (* | Nonterminal(nt) -> (tree_of_prodlist tl) @ acc *)
-                (* | other -> Node(other, []) :: acc *)
-                (* (* | [] ->  *) *)
-            (* ) [] (List.rev rhs) *)
-        (* ))] *)
-    (* | [] -> [] *)
-(* ) *)
-
-(* Seems like it might be closer... *)
 let rec tree_of_prodlist : (elt production list -> elt symbol tree list) = (fun prodlist ->
     (List.fold_left (fun acc (lhs, rhs) ->
-    (* Inlining fold_left to help add multiple recursion, which will probably be needed, 'cause trees... *)
-    (* let rec helper acc prods = *)
-        (* match prods with *)
-        (* | (lhs, rhs) :: remprods -> ( *)
-            (* Printf.printf "current accumulator is %s\n%!" (List.string_of (List.string_of (string_of_tree string_of_symbol)) acc); *)
             let string_of_treelist = List.string_of (string_of_tree string_of_symbol) in
             Printf.printf "current accumulator is %s\n%!" (string_of_treelist acc);
             Printf.printf "in tree_of_prodlist: %s\n%!" (string_of_production (lhs, rhs));
-            (* let (padded_rhs, padded_acc) = List.pad_to_same_length End_of_input [] rhs acc in *)
-            (* helper *)
                 let tmp = ref acc in
                 let newpart = (List.mapcan (fun s -> match s with
                 | Terminal(t) as sym -> [Node(sym,[])]
@@ -296,10 +274,7 @@ let rec tree_of_prodlist : (elt production list -> elt symbol tree list) = (fun 
                 | End_of_input as sym -> [Node(sym,acc)]
                 ) rhs) in
                 !tmp @ [Node(lhs,newpart)]
-                (* remprods *)
-        (* | [] -> acc *)
     ) [] (List.rev prodlist))
-    (* ) in helper [] (List.rev prodlist) *)
 )
 
 let rec nth_predecessor_of_pse n pse =
