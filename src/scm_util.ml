@@ -78,6 +78,11 @@ let rec pad_to_same_length pad1 pad2 l1 l2 =
     if      List.length l1 < List.length l2 then pad_to_same_length pad1 pad2 (l1 @ [pad1]) l2
     else if List.length l2 < List.length l1 then pad_to_same_length pad1 pad2 l1 (l2 @ [pad2])
     else (l1, l2)
+let remove_first pred l = List.rev (snd (List.fold_left (fun (found, acc) elem -> if found then (found, elem::acc) else if pred elem then (true, acc) else (found, elem::acc)) (false, []) l))
+let extract pred lr =
+    let result = find pred !lr in
+    inplace (remove_first pred) lr;
+    result
 end;;
 
 module Hashtbl =
