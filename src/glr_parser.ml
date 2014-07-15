@@ -347,6 +347,9 @@ module P = Make(StringArray);;
 open P;;
 let p = make_parser simple_operator_grammar;;
 let trees = p [|"1";"+";"1"|];;
+let sexprtrees = List.map (string_of_tree sexpr_string_of_symbol) trees;;
+
+
 let stringtrees = List.map (convert_tree (sexpr_string_of_symbol StringArray.string_of)) trees;;
 let sexprtrees = List.map sexpr_of_string_tree stringtrees;;
 
