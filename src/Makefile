@@ -1,6 +1,7 @@
 OC=ocamlopt
 OCOPT=-annot -g -p
 OCC=-annot -g
+OCBLIB=str.cma
 OCLIB=str.cmxa
 GRAPHICS_DIRS=-I +lablgl -I +camlimages
 GRAPHICS_LIBS_COMPILED=lablgl.cmxa lablglut.cmxa graphics.cmxa camlimages_core.cmxa camlimages_freetype.cmxa 
@@ -24,9 +25,9 @@ ngramdisplay.cmx: disambiguator.cmx ngramdisplay.ml
 	$(OC) $(OCOPT) $(OCLIB) -I . slice.cmx spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
 
 %.cmo: %.ml
-	ocamlc $(OCC) -c $<
+	ocamlc $(OCC) $(OCBLIB) -c $<
 %.cmx: %.ml
-	ocamlopt $(OCOPT) -c $<
+	ocamlopt $(OCOPT) $(OCLIB)-c $<
 
 disambiguator.cmx: sexprparse.cmx slice.cmx
 disambiguator.cmo: sexprparse.cmo slice.cmo
@@ -45,7 +46,7 @@ editor.cmo: editor.ml
 	ocamlc $(OCC) -I ../ocaml-curses/ curses.cma editor.ml -o editor
 
 ../parse_tree_drawer: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.cmx parse_tree_drawer.ml
-	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -o ../parse_tree_drawer
+	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(OCLIB) $(GRAPHICS_LIBS_COMPILED) $^ -o ../parse_tree_drawer
 
 opengl_visualization.cmx: scm_util.cmx font_wrapper.cmx opengl_visualization.ml
 	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -c
