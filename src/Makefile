@@ -27,7 +27,7 @@ ngramdisplay.cmx: disambiguator.cmx ngramdisplay.ml
 %.cmo: %.ml
 	ocamlc $(OCC) $(OCBLIB) -c $<
 %.cmx: %.ml
-	ocamlopt $(OCOPT) $(OCLIB)-c $<
+	ocamlopt $(OCOPT) $(OCLIB) -c $<
 
 disambiguator.cmx: sexprparse.cmx slice.cmx
 disambiguator.cmo: sexprparse.cmo slice.cmo
