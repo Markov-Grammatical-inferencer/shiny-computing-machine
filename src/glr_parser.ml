@@ -76,7 +76,7 @@ let balanced_paren_grammar = [(Nonterminal "S",[Terminal "(";Nonterminal "S";Ter
 let simple_imperative_grammar =
 [
 Start_symbol, [Nonterminal "program"];
-Nonterminal "program", [Nonterminal "stmt_list"; End_of_input];
+Nonterminal "program", [Nonterminal "stmt_list"];
 Nonterminal "stmt_list", [Nonterminal "stmt_list"; Nonterminal "stmt"];
 Nonterminal "stmt_list", [Nonterminal "stmt"];
 Nonterminal "stmt", [Terminal "id"; Terminal ":="; Nonterminal "expr"];
@@ -219,12 +219,14 @@ let make_transitions_table gram =
     Queue.push (get_initial_state gram) bfs_queue;
     while (not (Queue.is_empty bfs_queue)) do
         let cur_set = (Queue.pop bfs_queue) in
+        (* Printf.printf "cur_set: %s\n%!" (LRItemSet.string_of string_of_lritem cur_set); *)
         if Hashtbl.contains_key cur_set transitions then () else (* guard clause to prevent cycles in search graph *)
-        ignore(get_state_number gram cur_set); (* assign all the numbers here, for determinism *)
         let transitions_from_cur = transitions_from_state gram cur_set in
+        ignore(get_state_number gram cur_set); (* assign all the numbers here, for determinism *)
         Hashtbl.add transitions cur_set transitions_from_cur;
         Hashtbl.iter (fun k v -> Queue.push v bfs_queue) transitions_from_cur
     done;
+    Printf.printf "Finished creating the transitions table.\n%!";
     transitions
 
 (* possibly optimize to set later, to remove duplicates *)
@@ -260,6 +262,7 @@ let make_action_and_goto_tables gram trans_table =
             | End_of_input -> ())
         ) sym_to_newset
     ) trans_table;
+    Printf.printf "Finished creating the action and goto tables.\n%!";
     (atbl, gtbl)
 
 let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
