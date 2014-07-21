@@ -73,6 +73,9 @@ let setup_texture img =
     par (`mag_filter `nearest);
     par (`wrap_s `clamp);
     par (`wrap_t `clamp);
+    (* GlFunc.blend_func `one_minus_dst_color `one_minus_src_color; *)
+    (* GlMisc.hint `line_smooth `nicest; *)
+    (* GlMisc.hint `polygon_smooth `nicest; *)
     GlTex.image2d ~proxy: false ~level: 0 ~internal:3 ~border:false img;;
 
 let make_textrect_drawer face drawer str =

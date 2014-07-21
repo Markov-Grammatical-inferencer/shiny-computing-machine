@@ -43,6 +43,11 @@ let compare = String.compare
 let string_of = identity
 end;;
 let simple_tokenize = string_map identity;;
+let tokenize_via_whitespace str =
+    List.fold_right (fun e a -> match e with
+        | Str.Delim s -> if s = " " then a else s :: a
+        | Str.Text s -> s :: a
+    ) (Str.full_split (Str.regexp "[^a-zA-Z0-9]") str) [];;
 
 type 'a symbol = Start_symbol | Terminal of 'a | Nonterminal of string | End_of_input;;
 type 'a production = 'a symbol * 'a symbol list;; (* (lhs, rhs), not handling super-CFGs *)
@@ -71,7 +76,7 @@ let balanced_paren_grammar = [(Nonterminal "S",[Terminal "(";Nonterminal "S";Ter
 let simple_imperative_grammar =
 [
 Start_symbol, [Nonterminal "program"];
-Nonterminal "program", [Nonterminal "stmt_list"; End_of_input];
+Nonterminal "program", [Nonterminal "stmt_list"];
 Nonterminal "stmt_list", [Nonterminal "stmt_list"; Nonterminal "stmt"];
 Nonterminal "stmt_list", [Nonterminal "stmt"];
 Nonterminal "stmt", [Terminal "id"; Terminal ":="; Nonterminal "expr"];
@@ -142,6 +147,7 @@ let get_state_number =
             !counter)
 
 let string_of_symbol = string_of_symbol TS.string_of
+let sexpr_string_of_symbol = sexpr_string_of_symbol TS.string_of
 let string_of_production (lhs, rhs) = Printf.sprintf "|%s -> %s|" (string_of_symbol lhs) (List.string_of string_of_symbol rhs)
 let string_of_lritem (lhs, rhs1, rhs2) = Printf.sprintf "|%s -> %s <.> %s|" (string_of_symbol lhs) (List.string_of string_of_symbol rhs1) (List.string_of string_of_symbol rhs2)
 
@@ -213,12 +219,14 @@ let make_transitions_table gram =
     Queue.push (get_initial_state gram) bfs_queue;
     while (not (Queue.is_empty bfs_queue)) do
         let cur_set = (Queue.pop bfs_queue) in
+        (* Printf.printf "cur_set: %s\n%!" (LRItemSet.string_of string_of_lritem cur_set); *)
         if Hashtbl.contains_key cur_set transitions then () else (* guard clause to prevent cycles in search graph *)
-        ignore(get_state_number gram cur_set); (* assign all the numbers here, for determinism *)
         let transitions_from_cur = transitions_from_state gram cur_set in
+        ignore(get_state_number gram cur_set); (* assign all the numbers here, for determinism *)
         Hashtbl.add transitions cur_set transitions_from_cur;
         Hashtbl.iter (fun k v -> Queue.push v bfs_queue) transitions_from_cur
     done;
+    Printf.printf "Finished creating the transitions table.\n%!";
     transitions
 
 (* possibly optimize to set later, to remove duplicates *)
@@ -254,11 +262,12 @@ let make_action_and_goto_tables gram trans_table =
             | End_of_input -> ())
         ) sym_to_newset
     ) trans_table;
+    Printf.printf "Finished creating the action and goto tables.\n%!";
     (atbl, gtbl)
 
 let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
 
-let rec tree_of_prodlist : (elt production list -> elt symbol tree list) = (fun prodlist ->
+let tree_of_prodlist : (elt production list -> elt symbol tree list) = (fun prodlist ->
     (List.fold_left (fun acc (lhs, rhs) ->
             let string_of_treelist = List.string_of (string_of_tree string_of_symbol) in
             Printf.printf "current accumulator is %s\n%!" (string_of_treelist acc);
@@ -338,6 +347,7 @@ let main () =
     let p = P.make_parser simple_operator_grammar in
     p [|"1";"+";"1"|];;
 (*
+#load "str.cma";;
 #load "scm_util.cmo";;
 #load "glr_parser.cmo";;
 open Scm_util;;
@@ -346,6 +356,9 @@ module P = Make(StringArray);;
 open P;;
 let p = make_parser simple_operator_grammar;;
 let trees = p [|"1";"+";"1"|];;
+let sexprtrees = List.map (string_of_tree sexpr_string_of_symbol) trees;;
+
+
 let stringtrees = List.map (convert_tree (sexpr_string_of_symbol StringArray.string_of)) trees;;
 let sexprtrees = List.map sexpr_of_string_tree stringtrees;;
 

@@ -251,6 +251,41 @@ let manhattanDistance (x1,y1) (x2,y2) =
     (*Returns the Manhattan distance between points xy1 and xy2*)
     abs( x1 - x2 ) + abs( y1 - y2 );;
 
+class ['a]  counter =
+object (self)
+    val mutable internal_table = Hashtbl.create 0
+method get (idx : 'a)  = try Hashtbl.find internal_table idx with Not_found -> 0
+method increment_all keylist amount = List.iter (fun key -> Hashtbl.add internal_table key (amount+(self#get key)) ) keylist
+method kvmax = Hashtbl.fold
+    (fun k v acc ->
+        match acc with
+        | Some(ak,av) -> if v > av then Some(k,v) else Some(ak,av)
+        | None -> Some(k,v)
+    ) internal_table None
+method argmax = match self#kvmax with | Some(k,v) -> Some(k) | None -> None
+
+method sortedKeys = 
+    sortedItems = self.items()
+    compare = lambda x, y: sign(y[1] - x[1])
+    sortedItems.sort(cmp=compare)
+    return [x[0] for x in sortedItems]    
+method totalCount =
+    return self.sum(self.values())
+method normalize = 
+    
+method divideAll =
+    
+method copy =
+     
+method mul =
+     
+method radd =
+     
+method add = 
+method sub = 
+
+end;;
+
 (*
   Data structures and functions useful for various course projects
 
@@ -469,21 +504,6 @@ let manhattanDistance (x1,y1) (x2,y2) =
             addend[key] = -1 * y[key]
         return addend
 *)
-
-class ['a]  counter = 
-object (self)
-    val mutable internal_table = Hashtbl.create 0 
-method get (idx : 'a)  = try Hashtbl.find internal_table idx with Not_found -> 0
-method increment_all keylist amount = List.iter (fun key -> Hashtbl.add internal_table key (amount+(self#get key)) ) keylist 
-method kvmax = Hashtbl.fold
-    (fun k v acc ->
-        match acc with
-        | Some(ak,av) -> if v > av then Some(k,v) else Some(ak,av)
-        | None -> Some(k,v)
-    ) internal_table None
-method argmax = match self#kvmax with | Some(k,v) -> Some(k) | None -> None
-end;;
-
 
 def raiseNotDefined():
     fileName = inspect.stack()[1][1]
