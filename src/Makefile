@@ -1,5 +1,5 @@
 OC=ocamlopt
-OCOPT=-annot -g -p
+OCOPT=-annot -g 
 OCC=-annot -g
 OCLIB=str.cmxa
 GRAPHICS_DIRS=-I +lablgl -I +camlimages

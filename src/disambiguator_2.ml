@@ -48,15 +48,26 @@ object(self)
     else
      0-1
   method add_context (prec:string list) (s:string) (p:string) (follow:string list)=
+    let wid=(self#resolve_intern s) in 
+    let f= ref new word_context_manager in 
+    if Hashtbl.mem master_manager wid then 
+      f:=Hashtbl.find master_manager wid
+    else
+      Hashtbl.add master_manager wid !f;
     if Hashtbl.mem contexts (prec,follow) then 
       begin
         let g=Hashtbl.find contexts (prec,follow) in 
         let h = Hashtbl.find g p in 
-        h#add_word (self#resolve_intern s)
+        (!f)#add_context (ref h);
+        h#add_word wid
       end
     else
       let j=Hashtbl.create 1 in 
-      Hashtbl.add j p (new context_word p);
+      let h=new context_word p in
+      (!f)#add_context (ref h);
+      Hashtbl.add j p h;
       Hashtbl.add contexts (prec,follow) j
-        
+
+    method intersection ()=
+        let 
 end;;

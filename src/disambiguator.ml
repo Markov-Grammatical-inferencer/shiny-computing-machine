@@ -3,9 +3,9 @@ open Sexprparse;;(*for the Content datatype*)
 module IntSet=
 struct 
   include  Set.Make(struct 
-			let compare=Pervasives.compare 
-			type t=int
-		      end)
+                     let compare=Pervasives.compare 
+                     type t=int
+                   end)
   let to_SExpression (i:t)=
     let t=ref None in 
     List.iter (fun x->
@@ -29,7 +29,11 @@ struct
     !q
       
 end;;
-
+(**
+ * This doesn't actually work the way I really want it to, after all, it ignores the groups 
+of words using the same context which can be classified in specific ways. 
+ * Without this, it is probably not particularly useful for its intended purpose... 
+ *)
 type textual={prec:int list;follow:int list};;
 type word= {id:int;ctx:IntSet.t};;
 let sexpression_of_word (s:string) (w:word)=
