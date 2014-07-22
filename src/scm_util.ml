@@ -28,6 +28,8 @@ let (@=) x a = inplace ((swapargs (@)) a) x;;
 
 let identity x = x;;
 let compose f g x = f (g x);;
+let ($) a b = a b;;
+let (!!) a = a ();;
 let uncurry f (x,y) = f x y;;
 
 let string_map f str =
