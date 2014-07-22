@@ -38,6 +38,13 @@ let show_parse_tree tr =
     let (draw_tree,_) = make_tree_drawer tr in
         with_opengl_context "Parse Tree" (draw_tree 0. 0. 0.);;
 
+let show_parse_trees trs =
+    let (trees, widthsxheights) = List.unzip $ List.map make_tree_drawer trs in
+    let (widths, heights) = List.unzip widthsxheights in
+    let running_widths = List.rev (snd $ List.fold_left (fun (num,lis) elt -> ((num +. (2. *. elt)), (num :: lis))) (0.,[]) widths) in
+    with_opengl_context "Parse Trees"
+    (fun () -> List.iter2 (fun d_tr w -> d_tr w 0. 0. ()) trees running_widths);;
+
 (*
 show_parse_tree
 (Node("S",
@@ -64,6 +71,6 @@ let p = make_parser simple_operator_grammar;;
 (* let cdr_argv = Array.of_list (List.tl (Array.to_list Sys.argv));; *)
 (* let thing_to_parse = cdr_argv;; *)
 let thing_to_parse = Array.of_list (tokenize_via_whitespace (Array.get Sys.argv 1));;
-let parse_tree = (convert_tree (compose sexpr_string_of_symbol StringArray.string_of) (List.hd (p thing_to_parse)));;
-Printf.printf "%s\n%!" (sexpr_of_string_tree parse_tree);;
-show_parse_tree parse_tree;;
+let parse_trees = List.map (convert_tree (compose sexpr_string_of_symbol StringArray.string_of)) (p thing_to_parse);;
+List.iter (fun parse_tree -> Printf.printf "%s\n%!" (sexpr_of_string_tree parse_tree)) parse_trees;;
+show_parse_trees parse_trees;;
