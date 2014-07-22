@@ -68,6 +68,7 @@ let glpix_of_glteximage (img,w,h) = GlPix.of_raw img ~format: `rgb ~width: w ~he
 (* Fttext.drawer is ('a -> int -> 'a), and it's applied elementwise on images (according to the output of Fttext.Make) (and according to putpixel in fttext.ml) *)
 let draw_template d_f orig level = if (level > 16) then d_f orig level else orig;;
 let draw_red = draw_template (fun orig level -> Graphics.rgb level 0 0);;
+let draw_yellow = draw_template (fun orig level -> Graphics.rgb level level 0);;
 let draw_rainbow = draw_template (fun _ _ -> Graphics.rgb (Random.int 255) (Random.int 255)  (Random.int 255));;
 
 module Image_maker = functor (T : Fttext.T) ->
