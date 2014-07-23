@@ -12,7 +12,7 @@ EXECUTABLES=../SCM ../parse_tree_drawer ../set_map_multi_timing_test
 .PHONY: all libs clean
 all: libs $(EXECUTABLES)
 
-libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo sexprparse.cmo sexprlex.cmo
+libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo sexprparse.cmo sexprlex.cmo machine_learning_util.cmo
 
 test: file_reader.cmo string_splitter.cmo slice.cmo
 	ocaml tests.ml
@@ -38,6 +38,9 @@ spell_checking.cmo: spell_checking.ml
 
 glr_parser.cmx: scm_util.cmx
 glr_parser.cmo: scm_util.cmo
+
+machine_learning_util.cmx: scm_util.cmx
+machine_learning_util.cmo: scm_util.cmo
 
 #produce the editor
 editor.cmx: editor.ml
