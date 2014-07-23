@@ -166,7 +166,6 @@ class ['a] queue =
         "Returns true if the queue is empty"
         return len(self.list) == 0*)
 
-
 module PriorityQueue =
 struct 
 type priority = int
@@ -191,16 +190,31 @@ let rec remove_top = function
 let top q = match q with 
     Empty -> raise Queue_is_empty
     | Node(prio, elt, _, _) -> (prio, elt)
+let method_get internal_queue = internal_queue
+let method_top internal_queue = top !internal_queue
+let method_insert internal_queue prio elt = internal_queue := insert !internal_queue prio elt
+let method_remove_top internal_queue = internal_queue := remove_top !internal_queue
+let method_extract internal_queue = let rv = method_top internal_queue in method_remove_top internal_queue; rv
 class ['a] priority_queue = 
     object(self)
         val internal_queue : 'a queue ref = ref Empty
-        method insert prio elt = internal_queue := insert !internal_queue prio elt
-        method remove_top = internal_queue := remove_top !internal_queue
-        method extract = let rv = self#top in self#remove_top; rv
-        method get = internal_queue
-        method top = top !internal_queue
+        method insert = method_insert internal_queue
+        method remove_top = method_remove_top internal_queue
+        method extract = method_extract internal_queue
+        method get = method_get internal_queue
+        method top = method_top internal_queue
+    end
+class ['a] priority_queue_with_function fn = 
+    object(self)
+        val internal_queue : 'a queue ref = ref Empty
+        method insert elt = method_insert internal_queue (fn elt) elt
+        method remove_top = method_remove_top internal_queue
+        method extract = method_extract internal_queue
+        method get = method_get internal_queue
+        method top = method_top internal_queue
     end
 end;;
+
 (*class PriorityQueue:
     """
       Implements a priority queue data structure. Each inserted item
