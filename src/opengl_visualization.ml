@@ -69,8 +69,8 @@ let setup_texture img =
     Gl.enable `texture_2d;
     GlTex.bind_texture ~target:`texture_2d tex_id;
     let par = GlTex.parameter ~target:`texture_2d in
-    par (`min_filter `nearest);
-    par (`mag_filter `nearest);
+    par (`min_filter `linear);
+    par (`mag_filter `linear);
     par (`wrap_s `clamp);
     par (`wrap_t `clamp);
     (* GlFunc.blend_func `one_minus_dst_color `one_minus_src_color; *)
@@ -81,19 +81,26 @@ let setup_texture img =
 let make_textrect_drawer face drawer str (bg_r,bg_g,bg_b) =
     let module Imgmake = Image_maker(GlTexImage) in
     let (w, h, x, y) = Imgmake.get_size_and_pos face str in
-    let (w, h) = (next_pow2 w, next_pow2 h) in
-    let modifiable_img = GlTexImage.create w h in
+    let (n2w, n2h) = (next_pow2 w, next_pow2 h) in
+    let modifiable_img = GlTexImage.create n2w n2h in
     GlTexImage.fill_image modifiable_img (Graphics.rgb bg_r bg_g bg_b);
     Imgmake.draw_string_on_image modifiable_img face drawer str;
     let img = glpix_of_glteximage modifiable_img in
     let apply_texture = setup_texture img in
+    let fl = float_of_int in
+    (* texture scaling, so that 1,1 in the texture can be mapped to the equivalent of w,h *)
+    let (scale_w, scale_h) =
+        let make_scaler innerdim outerdim x =
+            (innerdim /. outerdim) *. x in
+        (make_scaler (fl w) (fl n2w), make_scaler (fl h) (fl n2h)) in
+    (* Printf.printf "(%f, %f) (%f, %f) (%f, %f)\n%!" (fl w) (fl h) (fl n2w) (fl n2h) (scale_w 0.5) (scale_h 0.5); *)
     let scale_factor = 10. in
-    let (w_f, h_f) = (float_of_int w) /. scale_factor, (float_of_int h) /. scale_factor in
+    let (w_f, h_f) = (fl w) /. scale_factor, (fl h) /. scale_factor in
     (fun w h x y z () ->
         apply_texture ();
         GlDraw.begins `quads;
         List.iter (fun (x,y,z,u,v) ->
-            GlTex.coord2 (u,v);
+            GlTex.coord2 (scale_w u, scale_h v);
             GlDraw.vertex3 (x,y,z);
         ) [(x,y,z,0.,1.);(x,y+.h,z,0.,0.);(x+.w,y+.h,z,1.,0.);(x+.w,y,z,1.,1.)];
         GlDraw.ends ();

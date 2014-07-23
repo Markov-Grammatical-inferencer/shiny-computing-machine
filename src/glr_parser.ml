@@ -227,6 +227,7 @@ let make_transitions_table gram =
         Hashtbl.iter (fun k v -> Queue.push v bfs_queue) transitions_from_cur
     done;
     Printf.printf "Finished creating the transitions table.\n%!";
+    (* Printf.printf "Transitions table: \n%s\n\n%!" (string_of_transition_table gram transitions); *)
     transitions
 
 (* possibly optimize to set later, to remove duplicates *)
@@ -263,6 +264,8 @@ let make_action_and_goto_tables gram trans_table =
         ) sym_to_newset
     ) trans_table;
     Printf.printf "Finished creating the action and goto tables.\n%!";
+    (* Printf.printf "Action table: \n%s\n%!" (string_of_action_table gram atbl); *)
+    (* Printf.printf "Goto table: \n%s\n%!" (string_of_goto_table gram gtbl); *)
     (atbl, gtbl)
 
 let get_token tokstream pos = if (pos < (TS.length tokstream)) then Terminal(TS.get tokstream pos) else End_of_input
