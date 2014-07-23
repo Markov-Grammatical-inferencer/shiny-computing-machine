@@ -3,7 +3,7 @@ import inspect
 import heapq, random
 import cStringIO*)
 
-
+open Scm_util;;
 
 (*"""
  Data structures useful for implementing SearchAgents
@@ -158,11 +158,11 @@ let manhattanDistance (x1,y1) (x2,y2) =
     (*Returns the Manhattan distance between points xy1 and xy2*)
     abs( x1 - x2 ) + abs( y1 - y2 );;
 
-class ['a]  counter =
+class ['k] counter =
 object (self)
     val mutable internal_table = Hashtbl.create 0
-method get (idx : 'a)  = try Hashtbl.find internal_table idx with Not_found -> 0
-method increment_all keylist amount = List.iter (fun key -> Hashtbl.add internal_table key (amount+(self#get key)) ) keylist
+method get (idx : 'k)  = try Hashtbl.find internal_table idx with Not_found -> 0.
+method increment_all keylist amount = List.iter (fun key -> Hashtbl.add internal_table key (amount+.(self#get key)) ) keylist
 method kvmax = Hashtbl.fold
     (fun k v acc ->
         match acc with
@@ -170,24 +170,30 @@ method kvmax = Hashtbl.fold
         | None -> Some(k,v)
     ) internal_table None
 method argmax = match self#kvmax with | Some(k,v) -> Some(k) | None -> None
-(*
+
 method sortedKeys = 
-    sortedItems = self.items()
-    compare = lambda x, y: sign(y[1] - x[1])
-    sortedItems.sort(cmp=compare)
-    return [x[0] for x in sortedItems]    
-method totalCount =
-    return self.sum(self.values())
-method normalize = 
+    let items = Hashtbl.list_of internal_table in 
+    let cmp (k1, v1) (k2, v2) = compare v1 v2 in
+    let sortedItems = List.sort cmp items in
+    fst $ List.unzip sortedItems
+
+method keys = fst $ List.unzip (Hashtbl.list_of internal_table)
+method values = snd $ List.unzip (Hashtbl.list_of internal_table)
+method table = internal_table
+method totalCount = List.fold_left (+.) 0. self#values
+method normalize = self#divideAll self#totalCount
+method divideAll divisor =
+    internal_table <- Hashtbl.map
+        (fun k v -> (k, (v /. divisor))) internal_table
     
-method divideAll =
-    
-method copy =
-     
-method mul =
-     
+method copy = {< >} 
+method mul (other: 'a counter) =
+    let mixed_table = Hashtbl.zip internal_table other#table 0. 0. in
+    let vals = snd $ List.unzip (Hashtbl.list_of mixed_table) in
+    let prods = List.map (fun (x,y) -> x*.y) vals in
+    List.fold_left (+.) 0. prods
+(*
 method radd =
-     
 method add = 
 method sub = 
 *)
