@@ -78,12 +78,12 @@ let setup_texture img =
     (* GlMisc.hint `polygon_smooth `nicest; *)
     GlTex.image2d ~proxy: false ~level: 0 ~internal:3 ~border:false img;;
 
-let make_textrect_drawer face drawer str =
+let make_textrect_drawer face drawer str (bg_r,bg_g,bg_b) =
     let module Imgmake = Image_maker(GlTexImage) in
     let (w, h, x, y) = Imgmake.get_size_and_pos face str in
     let (w, h) = (next_pow2 w, next_pow2 h) in
     let modifiable_img = GlTexImage.create w h in
-    GlTexImage.fill_image modifiable_img (Graphics.rgb 0x40 0x40 0x40);
+    GlTexImage.fill_image modifiable_img (Graphics.rgb bg_r bg_g bg_b);
     Imgmake.draw_string_on_image modifiable_img face drawer str;
     let img = glpix_of_glteximage modifiable_img in
     let apply_texture = setup_texture img in
@@ -98,6 +98,15 @@ let make_textrect_drawer face drawer str =
         ) [(x,y,z,0.,1.);(x,y+.h,z,0.,0.);(x+.w,y+.h,z,1.,0.);(x+.w,y,z,1.,1.)];
         GlDraw.ends ();
     ) w_f h_f, w_f, h_f;;
+
+let make_blinking_textrect_drawer frame_off cycle_length face drawer str bgcolor =
+    let plaindrawer, w, h = make_textrect_drawer face drawer str bgcolor in
+    let cur_frame = ref 0 in
+    (fun x y z () ->
+        cur_frame += 1;
+        if !cur_frame < frame_off then plaindrawer x y z ();
+        if !cur_frame = cycle_length then cur_frame := 0;
+    ), w, h;;
 
 let draw_rectangular_line w (x1,y1,z1) (x2,y2,z2) (r,g,b,a) =
     Gl.disable `texture_2d;

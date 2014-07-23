@@ -9,7 +9,7 @@ open Glr_parser;;
 
 let rec make_tree_drawer tr =
     let Node(node,subtrees) = tr in
-    let (draw_cur_node, w, h) = make_textrect_drawer freemono_face draw_yellow node in
+    let (draw_cur_node, w, h) = make_textrect_drawer freemono_face draw_yellow node (0x40, 0x40, 0x40) in
     let (draw_subtree_list, widths_and_heights) = List.unzip (List.map make_tree_drawer subtrees) in
     let (subtree_widths, subtree_heights) = List.unzip widths_and_heights in
     (* let total_subwidth = List.fold_left (+.) 0. subtree_widths in *)
@@ -42,8 +42,9 @@ let show_parse_trees trs =
     let (trees, widthsxheights) = List.unzip $ List.map make_tree_drawer trs in
     let (widths, heights) = List.unzip widthsxheights in
     let running_widths = List.rev (snd $ List.fold_left (fun (num,lis) elt -> ((num +. (2. *. elt)), (num :: lis))) (0.,[]) widths) in
+    let extra_text_drawer = let d,w,h = make_blinking_textrect_drawer 10 100 freemono_face draw_yellow "subliminal message" (0,0,0) in d (~-.w /. 2.) (2. *. h) 0. in
     with_opengl_context "Parse Trees"
-    (fun () -> List.iter2 (fun d_tr w -> d_tr w 0. 0. ()) trees running_widths);;
+    (fun () -> extra_text_drawer (); List.iter2 (fun d_tr w -> d_tr w 0. 0. ()) trees running_widths);;
 
 (*
 show_parse_tree
