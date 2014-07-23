@@ -96,6 +96,13 @@ let contains_key key = exists (fun k v -> k = key)
 let list_of tbl = Hashtbl.fold (fun k v acc -> (k,v) :: acc) tbl []
 let find_default default tbl k = try find tbl k with Not_found -> default
 let uncurry_find tbl k1 k2 = find (find tbl k1) k2
+(* makes a new table with all the keys of t1 and t2, with potential
+ default values if the corresponding keys don't exist *)
+let zip t1 t2 dv1 dv2 =
+    let newtbl = create 0 in
+    iter (fun k v -> replace newtbl k (v, find_default dv2 t2 k)) t1;
+    iter (fun k v -> replace newtbl k (find_default dv1 t1 k, v)) t2;
+    newtbl
 end;;
 
 module ExtendSet = functor (SetModule : Set.S) ->
