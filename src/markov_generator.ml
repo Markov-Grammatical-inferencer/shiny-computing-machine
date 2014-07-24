@@ -5,4 +5,9 @@ try
     let window = int_of_string Sys.argv.(2) in
     let length = int_of_string Sys.argv.(3) in
     Printf.printf "%s\n%!" (Markov_chain_generator.main filename window length)
-with _ -> print_usage ();;
+with
+Invalid_argument(x) ->
+    if x = "Array.make" then
+    Printf.printf "File is too large to process.\n%!"
+    else print_usage ()
+| _ -> print_usage ();;
