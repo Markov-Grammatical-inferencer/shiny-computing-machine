@@ -161,7 +161,7 @@ let manhattanDistance (x1,y1) (x2,y2) =
 class ['k] counter =
 object (self)
     val mutable internal_table = Hashtbl.create 0
-method get (idx : 'k)  = try Hashtbl.find internal_table idx with Not_found -> 0.
+method get (idx : 'k)  = Hashtbl.find_default 0. internal_table idx
 method increment_all keylist amount = List.iter (fun key -> Hashtbl.add internal_table key (amount+.(self#get key)) ) keylist
 method kvmax = Hashtbl.fold
     (fun k v acc ->
@@ -170,7 +170,7 @@ method kvmax = Hashtbl.fold
         | None -> Some(k,v)
     ) internal_table None
 method argmax = match self#kvmax with | Some(k,v) -> Some(k) | None -> None
-
+method table = internal_table
 method sortedKeys = 
     let items = Hashtbl.list_of internal_table in 
     let cmp (k1, v1) (k2, v2) = compare v1 v2 in
@@ -186,17 +186,28 @@ method divideAll divisor =
     internal_table <- Hashtbl.map
         (fun k v -> (k, (v /. divisor))) internal_table
     
-method copy = {< >} 
-method mul (other: 'a counter) =
+method copy = {<internal_table = Hashtbl.map (fun k v -> (k,v)) internal_table >} 
+method mul (other: 'k counter) =
     let mixed_table = Hashtbl.zip internal_table other#table 0. 0. in
     let vals = snd $ List.unzip (Hashtbl.list_of mixed_table) in
     let prods = List.map (fun (x,y) -> x*.y) vals in
     List.fold_left (+.) 0. prods
-(*
-method radd =
-method add = 
-method sub = 
-*)
+method increment (other: 'k counter) = 
+    Hashtbl.iter (fun k v -> 
+        Hashtbl.replace internal_table k ((self#get k)+. v)
+        ) other#table
+method decrement (other: 'k counter) =
+     self#increment other#negate
+method add (other: 'k counter) =
+    let temp = self#copy in
+    temp#increment other; 
+    temp
+method negate = 
+    {<internal_table = Hashtbl.map (fun k v -> (k , (~-. v))) internal_table >}
+method sub (other: 'k counter) = 
+  let temp = self#copy in
+    temp#decrement other;
+    temp  
 end;;
 
 (*
@@ -412,7 +423,7 @@ end;;
             else:
                 addend[key] = self[key]
         for key in y:
-            if key in self:
+           if key in self:
                 continue
             addend[key] = -1 * y[key]
         return addend
