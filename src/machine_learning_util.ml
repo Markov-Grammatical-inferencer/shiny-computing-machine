@@ -98,8 +98,8 @@ let top q = match q with
     | Node(prio, elt, _, _) -> (prio, elt)
 let method_get internal_queue = internal_queue
 let method_top internal_queue = top !internal_queue
-let method_insert internal_queue prio elt = internal_queue := insert !internal_queue prio elt
-let method_remove_top internal_queue = internal_queue := remove_top !internal_queue
+let method_insert internal_queue prio elt = inplace (fun q -> insert q prio elt) internal_queue
+let method_remove_top internal_queue = inplace remove_top internal_queue
 let method_extract internal_queue = let rv = method_top internal_queue in method_remove_top internal_queue; rv
 class ['a] priority_queue = 
     object(self)
