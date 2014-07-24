@@ -41,6 +41,11 @@ let string_map f str =
         ) str;
     arr;;
 
+let string_of_array arr =
+    let rv = String.create $ Array.length arr in
+    Array.iteri (String.unsafe_set rv) arr;
+    rv;;
+
 let int3_of_rgb col =
 let get_r c = Int32.to_int (Int32.shift_right (Int32.logand (Int32.of_int c) (Int32.of_int 0xFF0000)) 16) in
 let get_g c = Int32.to_int (Int32.shift_right (Int32.logand (Int32.of_int c) (Int32.of_int 0x00FF00)) 8) in
