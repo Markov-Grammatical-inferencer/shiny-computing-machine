@@ -7,7 +7,7 @@ GRAPHICS_DIRS=-I +lablgl -I +camlimages
 GRAPHICS_LIBS_COMPILED=lablgl.cmxa lablglut.cmxa graphics.cmxa camlimages_core.cmxa camlimages_freetype.cmxa 
 GRAPHICS_LIBS_BYTECODE=lablgl.cma lablglut.cma graphics.cma camlimages_core.cma camlimages_freetype.cma 
 
-EXECUTABLES=../SCM ../parse_tree_drawer ../set_map_multi_timing_test
+EXECUTABLES=../SCM ../parse_tree_drawer ../set_map_multi_timing_test ../markov_generator
 
 .PHONY: all libs clean
 all: libs $(EXECUTABLES)
@@ -23,6 +23,9 @@ ngramdisplay.cmx: disambiguator.cmx ngramdisplay.ml
 
 ../SCM: spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml 
 	$(OC) $(OCOPT) $(OCLIB) -I . slice.cmx spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
+
+../markov_generator: scm_util.cmx glr_parser.cmx markov_chain_generator.cmx markov_generator.ml
+	$(OC) $(OCOPT) $(OCLIB) $^ -o $@
 
 %.cmo: %.ml
 	ocamlc $(OCC) $(OCBLIB) -c $^

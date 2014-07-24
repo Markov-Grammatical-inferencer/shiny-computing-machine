@@ -6,8 +6,15 @@ open Scm_util;;
 #load "markov_chain_generator.cmo";;
 open Scm_util;;
 open Markov_chain_generator;;
+
+let a = tokenize_characterwise $ string_of_file "pg1661_the_adventures_of_sherlock_holmes.txt";;
+let b = generate_markov_counts 5 a;;
+let c = generate_randomish_string b 1000;;
+Printf.printf "%s\n" c;;
 *)
 
+let string_of_char c = let b = Buffer.create 0 in Buffer.add_char b c; Buffer.contents b;;
+let tokenize_characterwise s = Array.to_list $ string_map string_of_char s;;
 let tokenize = Glr_parser.tokenize_via_whitespace;;
 
 let tokens_of_file = compose tokenize string_of_file;;
@@ -49,12 +56,12 @@ let generate_randomish_string ((window, markov_table) : occurrence_data) length 
     for i=0 to length do
         let w = random_word ctx#get in
         Buffer.add_string buf w;
-        Buffer.add_char buf ' ';
+        (* Buffer.add_char buf ' '; *)
         ctx#push w
     done;
     Buffer.contents buf;;
 
 let main filename window length =
-    let tokens = tokenize $ string_of_file filename in
+    let tokens = tokenize_characterwise $ string_of_file filename in
     let occurrences = generate_markov_counts window tokens in
     generate_randomish_string occurrences length;;
