@@ -44,10 +44,10 @@ let string_of = identity
 end;;
 let simple_tokenize = string_map identity;;
 let tokenize_via_whitespace str =
-    List.fold_right (fun e a -> match e with
+    List.rev $ List.fold_left (fun a e -> match e with
         | Str.Delim s -> if s = " " then a else s :: a
         | Str.Text s -> s :: a
-    ) (Str.full_split (Str.regexp "[^a-zA-Z0-9]") str) [];;
+    ) [] (Str.full_split (Str.regexp "[^a-zA-Z0-9]") str);;
 
 type 'a symbol = Start_symbol | Terminal of 'a | Nonterminal of string | End_of_input;;
 type 'a production = 'a symbol * 'a symbol list;; (* (lhs, rhs), not handling super-CFGs *)
