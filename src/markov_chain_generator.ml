@@ -15,7 +15,7 @@ Printf.printf "%s\n" c;;
 
 let string_of_char c = let b = Buffer.create 0 in Buffer.add_char b c; Buffer.contents b;;
 let tokenize_characterwise s = Array.to_list $ string_map string_of_char s;;
-let tokenize = Glr_parser.tokenize_via_whitespace;;
+let tokenize s = List.rev (List.rev_map (fun s -> s^" ") $ Glr_parser.tokenize_via_whitespace s);;
 
 let tokens_of_file = compose tokenize string_of_file;;
 
@@ -50,6 +50,7 @@ let generate_randomish_string ((window, markov_table) : occurrence_data) length 
         let subtbl = Hashtbl.find_default (Hashtbl.create 0) markov_table c in
         let total = Hashtbl.fold (fun k v acc -> acc + v) subtbl 0 in
         let idx = Random.int total in
+        (* index into an "unrolled roulette wheel", subtracting the bucket widths until i is negative *)
         snd $ Hashtbl.fold (fun k v (i, x) -> if i < 0 then (i, x) else (i - v, k)) subtbl (idx, "")
     in
     let buf = Buffer.create 0 in
