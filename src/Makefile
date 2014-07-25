@@ -7,12 +7,12 @@ GRAPHICS_DIRS=-I +lablgl -I +camlimages
 GRAPHICS_LIBS_COMPILED=lablgl.cmxa lablglut.cmxa graphics.cmxa camlimages_core.cmxa camlimages_freetype.cmxa 
 GRAPHICS_LIBS_BYTECODE=lablgl.cma lablglut.cma graphics.cma camlimages_core.cma camlimages_freetype.cma 
 
-EXECUTABLES=../SCM ../parse_tree_drawer ../set_map_multi_timing_test
+EXECUTABLES=../SCM ../parse_tree_drawer ../set_map_multi_timing_test ../markov_generator
 
 .PHONY: all libs clean
 all: libs $(EXECUTABLES)
 
-libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo sexprparse.cmo sexprlex.cmo machine_learning_util.cmo
+libs: scm_util.cmo font_wrapper.cmo glr_parser.cmo opengl_visualization.cmo sexprparse.cmo sexprlex.cmo machine_learning_util.cmo markov_chain_generator.cmo
 
 test: file_reader.cmo string_splitter.cmo slice.cmo
 	ocaml tests.ml
@@ -24,10 +24,13 @@ ngramdisplay.cmx: disambiguator.cmx ngramdisplay.ml
 ../SCM: spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml 
 	$(OC) $(OCOPT) $(OCLIB) -I . slice.cmx spell_checking.cmx disambiguator.cmx file_reader.cmx string_splitter.cmx main.ml -o ../SCM
 
+../markov_generator: scm_util.cmx glr_parser.cmx markov_chain_generator.cmx markov_generator.ml
+	$(OC) $(OCOPT) $(OCLIB) $^ -o $@
+
 %.cmo: %.ml
-	ocamlc $(OCC) $(OCBLIB) -c $<
+	ocamlc $(OCC) $(OCBLIB) -c $^
 %.cmx: %.ml
-	ocamlopt $(OCOPT) $(OCLIB) -c $<
+	ocamlopt $(OCOPT) $(OCLIB) -c $^
 
 disambiguator.cmx: sexprparse.cmx slice.cmx
 disambiguator.cmo: sexprparse.cmo slice.cmo
@@ -41,6 +44,9 @@ glr_parser.cmo: scm_util.cmo
 
 machine_learning_util.cmx: scm_util.cmx
 machine_learning_util.cmo: scm_util.cmo
+
+markov_chain_generator.cmx: scm_util.cmx glr_parser.cmx
+markov_chain_generator.cmo: scm_util.cmo glr_parser.cmo
 
 #produce the editor
 editor.cmx: editor.ml

@@ -41,6 +41,18 @@ let string_map f str =
         ) str;
     arr;;
 
+let string_of_array arr =
+    let rv = String.create $ Array.length arr in
+    Array.iteri (String.unsafe_set rv) arr;
+    rv;;
+
+let string_of_file fname =
+    let file = open_in fname in
+    let len = in_channel_length file - 1 in
+    let buf = Buffer.create 0 in
+    for i = 0 to len do Buffer.add_char buf $ input_char file done;
+    Buffer.contents buf;;
+
 let int3_of_rgb col =
 let get_r c = Int32.to_int (Int32.shift_right (Int32.logand (Int32.of_int c) (Int32.of_int 0xFF0000)) 16) in
 let get_g c = Int32.to_int (Int32.shift_right (Int32.logand (Int32.of_int c) (Int32.of_int 0x00FF00)) 8) in
@@ -51,6 +63,12 @@ module Array =
 struct
 include Array
 let contains x = Array.fold_left (fun acc y -> (x = y) || acc) false
+let shift_left new_rightmost arr =
+    let last = (length arr)-1 in
+    iteri (fun idx elt ->
+        let next_val = if idx = last then new_rightmost else get arr (idx+1) in
+        set arr idx next_val
+    ) arr;;
 end;;
 
 (* type ('a, 'b) either = T1 of 'a | T2 of 'b;; *)
@@ -103,6 +121,7 @@ let zip t1 t2 dv1 dv2 =
     iter (fun k v -> replace newtbl k (v, find_default dv2 t2 k)) t1;
     iter (fun k v -> replace newtbl k (find_default dv1 t1 k, v)) t2;
     newtbl
+let inplace_key tbl k fn default = replace tbl k $ fn (find_default default tbl k);;
 end;;
 
 module ExtendSet = functor (SetModule : Set.S) ->
