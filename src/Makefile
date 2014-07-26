@@ -1,8 +1,8 @@
 OC=ocamlopt
 OCOPT=-annot -g 
 OCC=-annot -g
-OCBLIB=str.cma
-OCLIB=str.cmxa
+OCBLIB=str.cma unix.cma
+OCLIB=str.cmxa unix.cmxa
 GRAPHICS_DIRS=-I +lablgl -I +camlimages
 GRAPHICS_LIBS_COMPILED=lablgl.cmxa lablglut.cmxa graphics.cmxa camlimages_core.cmxa camlimages_freetype.cmxa 
 GRAPHICS_LIBS_BYTECODE=lablgl.cma lablglut.cma graphics.cma camlimages_core.cma camlimages_freetype.cma 
