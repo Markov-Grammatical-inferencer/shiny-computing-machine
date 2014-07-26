@@ -69,6 +69,7 @@ let shift_left new_rightmost arr =
         let next_val = if idx = last then new_rightmost else get arr (idx+1) in
         set arr idx next_val
     ) arr;;
+let string_of string_of_t l = Printf.sprintf "%s|]" (fold_left (fun acc elem -> acc ^ elem ^ ";") "[|" (map string_of_t l))
 end;;
 
 (* type ('a, 'b) either = T1 of 'a | T2 of 'b;; *)
@@ -103,6 +104,7 @@ let extract pred lr =
     let result = find pred !lr in
     inplace (remove_first pred) lr;
     result
+let first_n n l = rev (snd $ fold_left (fun (i,a) e -> if i < n then (i+1, e::a) else (i, a)) (0,[]) l);;
 end;;
 
 module Hashtbl =

@@ -10,6 +10,10 @@ open Markov_chain_generator;;
 let a = tokenize_characterwise $ string_of_file "pg1661_the_adventures_of_sherlock_holmes.txt";;
 let b = generate_markov_counts 5 a;;
 let c = generate_randomish_string b 1000;;
+
+let d = tokenize_characterwise c;;
+p_tokens_given_model d b;;
+
 Printf.printf "%s\n" c;;
 *)
 
@@ -67,3 +71,22 @@ let main filename window length =
     let tokens = tokenize_characterwise $ string_of_file filename in
     let occurrences = generate_markov_counts window tokens in
     generate_randomish_string occurrences length;;
+
+let escape_whitespace s = Str.global_replace (Str.regexp "\n") "\\n" $ Str.global_replace (Str.regexp "\r") "\\r" (Str.global_replace (Str.regexp "\t") "\\t" s);;
+let pad_to_length n s =
+    let pad_len = n - String.length s in
+    let padding = String.create pad_len in
+    String.fill padding 0 pad_len ' ';
+    padding ^ s
+
+let p_tokens_given_model tokens ((window, markov_table) : occurrence_data) : float =
+    (snd $ List.fold_left (fun (queue, prob) token ->
+        let subtbl = Hashtbl.find_default (Hashtbl.create 0) markov_table queue#get in
+        let total = float_of_int $ Hashtbl.fold (fun k v acc -> acc + v) subtbl 0 in
+        let occs_of_token = float_of_int $ Hashtbl.find_default 0 subtbl token in (* consider 1 as the default, as in Laplace's rule of succession? *)
+        (* average the probabilities instead of multiplying them, since multiplying moves them towards zero for an arbitrarily long string, even if most of them match *)
+        let newprob = prob +. (occs_of_token /. total) in
+        (* Printf.printf "token: %s\tcontext: %s\toccurrences: (%d / %d)\trunning_probability %f\n%!" (escape_whitespace token) (Array.string_of (compose (pad_to_length 2) escape_whitespace) queue#get) (int_of_float occs_of_token) (int_of_float total) newprob; *)
+        queue#push token;
+        (queue, newprob)
+    ) (new finite_queue window "", 1.) tokens) /. (float_of_int $ List.length tokens)
