@@ -63,6 +63,7 @@ let generate_randomish_string ((window, markov_table) : occurrence_data) length 
     Buffer.contents buf;;
 
 let main filename window length =
+    Random.self_init ();
     let tokens = tokenize_characterwise $ string_of_file filename in
     let occurrences = generate_markov_counts window tokens in
     generate_randomish_string occurrences length;;
