@@ -77,16 +77,46 @@ let pad_to_length n s =
     let pad_len = n - String.length s in
     let padding = String.create pad_len in
     String.fill padding 0 pad_len ' ';
-    padding ^ s
+    padding ^ s;;
 
-let p_tokens_given_model tokens ((window, markov_table) : occurrence_data) : float =
+module type Number_ish =
+sig
+type t
+val (+%) : t -> t -> t
+val ( *%) : t -> t -> t
+val (/%) : t -> t -> t
+val string_of_t : t -> string
+val t_of_int : int -> t
+end;;
+
+module Float_wrapper =
+struct
+type t = float
+let (+%) = (+.)
+let ( *%) = ( *.)
+let (/%) = (/.)
+let string_of_t = string_of_float
+let t_of_int = float_of_int
+end;;
+
+module Probability_given_model (T : Number_ish) =
+struct
+open T
+let p_tokens_given_model tokens ((window, markov_table) : occurrence_data) : t =
     (snd $ List.fold_left (fun (queue, prob) token ->
         let subtbl = Hashtbl.find_default (Hashtbl.create 0) markov_table queue#get in
-        let total = float_of_int $ Hashtbl.fold (fun k v acc -> acc + v) subtbl 0 in
-        let occs_of_token = float_of_int $ Hashtbl.find_default 0 subtbl token in (* consider 1 as the default, as in Laplace's rule of succession? *)
+        let total = Hashtbl.fold (fun k v acc -> acc + v) subtbl 0 in
+        let occs = Hashtbl.find_default 0 subtbl token in (* consider 1 as the default, as in Laplace's rule of succession? *)
         (* average the probabilities instead of multiplying them, since multiplying moves them towards zero for an arbitrarily long string, even if most of them match *)
-        let newprob = prob +. (occs_of_token /. total) in
-        (* Printf.printf "token: %s\tcontext: %s\toccurrences: (%d / %d)\trunning_probability %f\n%!" (escape_whitespace token) (Array.string_of (compose (pad_to_length 2) escape_whitespace) queue#get) (int_of_float occs_of_token) (int_of_float total) newprob; *)
+        let newprob = prob +% ((t_of_int occs) /% (t_of_int total)) in
+        Printf.printf "token: %s\tcontext: %s\toccurrences: (%d / %d)\trunning_probability %s\n%!" (escape_whitespace token) (Array.string_of (compose (pad_to_length 2) escape_whitespace) queue#get) occs total (string_of_t newprob);
         queue#push token;
         (queue, newprob)
-    ) (new finite_queue window "", 1.) tokens) /. (float_of_int $ List.length tokens)
+    ) (new finite_queue window "", (t_of_int 1)) tokens) /% (t_of_int $ List.length tokens);;
+end;;
+
+let recognizer_main training_fname other_fname window =
+    let module M = Probability_given_model(Float_wrapper) in
+    let tokens = tokenize_characterwise $ string_of_file training_fname in
+    let model = generate_markov_counts window tokens in
+    M.p_tokens_given_model (tokenize_characterwise $ string_of_file other_fname) model;;
