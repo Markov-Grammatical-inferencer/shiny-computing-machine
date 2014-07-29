@@ -50,6 +50,10 @@ let generate_markov_counts window tokens : occurrence_data =
 
 let generate_randomish_string ((window, markov_table) : occurrence_data) length =
     let ctx = new finite_queue window "" in
+    let random_context () =
+        let contexts = Hashtbl.keys markov_table in
+        List.nth contexts (Random.int $ List.length contexts) in
+    ctx#set $ random_context ();
     let random_word c =
         let subtbl = Hashtbl.find_default (Hashtbl.create 0) markov_table c in
         let total = Hashtbl.fold (fun k v acc -> acc + v) subtbl 0 in
