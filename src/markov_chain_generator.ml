@@ -50,6 +50,10 @@ let generate_markov_counts window tokens : occurrence_data =
 
 let generate_randomish_string ((window, markov_table) : occurrence_data) length =
     let ctx = new finite_queue window "" in
+    let random_context () =
+        let contexts = Hashtbl.keys markov_table in
+        List.nth contexts (Random.int $ List.length contexts) in
+    ctx#set $ random_context ();
     let random_word c =
         let subtbl = Hashtbl.find_default (Hashtbl.create 0) markov_table c in
         let total = Hashtbl.fold (fun k v acc -> acc + v) subtbl 0 in
@@ -99,9 +103,20 @@ let string_of_t = string_of_float
 let t_of_int = float_of_int
 end;;
 
+module Num_wrapper =
+struct
+type t = Num.num
+let (+%) = Num.(+/)
+let ( *%) = Num.( */)
+let (/%) = Num.(//)
+let string_of_t = Num.string_of_num
+let t_of_int = Num.num_of_int
+end;;
+
 module Probability_given_model (T : Number_ish) =
 struct
 open T
+module T = T
 let p_tokens_given_model tokens ((window, markov_table) : occurrence_data) : t =
     (snd $ List.fold_left (fun (queue, prob) token ->
         let subtbl = Hashtbl.find_default (Hashtbl.create 0) markov_table queue#get in
@@ -112,11 +127,11 @@ let p_tokens_given_model tokens ((window, markov_table) : occurrence_data) : t =
         Printf.printf "token: %s\tcontext: %s\toccurrences: (%d / %d)\trunning_probability %s\n%!" (escape_whitespace token) (Array.string_of (compose (pad_to_length 2) escape_whitespace) queue#get) occs total (string_of_t newprob);
         queue#push token;
         (queue, newprob)
-    ) (new finite_queue window "", (t_of_int 1)) tokens) /% (t_of_int $ List.length tokens);;
+    ) (new finite_queue window "", (t_of_int 1)) tokens) /% (t_of_int $ List.length tokens)
 end;;
 
 let recognizer_main training_fname other_fname window =
     let module M = Probability_given_model(Float_wrapper) in
     let tokens = tokenize_characterwise $ string_of_file training_fname in
     let model = generate_markov_counts window tokens in
-    M.p_tokens_given_model (tokenize_characterwise $ string_of_file other_fname) model;;
+    M.T.string_of_t $ M.p_tokens_given_model (tokenize_characterwise $ string_of_file other_fname) model;;
