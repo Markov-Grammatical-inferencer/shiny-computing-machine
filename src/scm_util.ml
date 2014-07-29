@@ -124,6 +124,13 @@ let zip t1 t2 dv1 dv2 =
     iter (fun k v -> replace newtbl k (find_default dv1 t1 k, v)) t2;
     newtbl
 let inplace_key tbl k fn default = replace tbl k $ fn (find_default default tbl k);;
+let max (tbl:(string,int)Hashtbl.t)=
+    let pair = ref ("",-1000) in 
+    Hashtbl.iter (fun x y->
+        match !pair with 
+        (_,c)->if c<y then 
+            pair:=(x,y)) tbl;;
+    
 end;;
 
 module ExtendSet = functor (SetModule : Set.S) ->
