@@ -1,3 +1,5 @@
+Random.init (int_of_float (Unix.time ()));;
+
 let print_usage () =
     Printf.printf "Usage: markov_generator filename window_length output_length\n%!";;
 try

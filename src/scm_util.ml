@@ -29,8 +29,10 @@ let (@=) x a = inplace ((swapargs (@)) a) x;;
 let identity x = x;;
 let compose f g x = f (g x);;
 let ($) a b = a b;;
+let ($.) = compose;;
 let (!!) a = a ();;
 let uncurry f (x,y) = f x y;;
+let curry f x y = f (x,y);;
 
 let string_map f str =
     let arr = Array.create (String.length str) (f 'a') in
@@ -69,6 +71,7 @@ let shift_left new_rightmost arr =
         let next_val = if idx = last then new_rightmost else get arr (idx+1) in
         set arr idx next_val
     ) arr;;
+let string_of string_of_t l = Printf.sprintf "%s|]" (fold_left (fun acc elem -> acc ^ elem ^ ";") "[|" (map string_of_t l))
 end;;
 
 (* type ('a, 'b) either = T1 of 'a | T2 of 'b;; *)
@@ -103,6 +106,7 @@ let extract pred lr =
     let result = find pred !lr in
     inplace (remove_first pred) lr;
     result
+let first_n n l = rev (snd $ fold_left (fun (i,a) e -> if i < n then (i+1, e::a) else (i, a)) (0,[]) l);;
 end;;
 
 module Hashtbl =
@@ -112,6 +116,7 @@ let map fn tbl = fold (fun k v acc -> uncurry (add acc) (fn k v); acc) tbl (Hash
 let exists fn tbl = fold (fun k v acc -> if (fn k v) then true else acc) tbl false
 let contains_key key = exists (fun k v -> k = key)
 let list_of tbl = Hashtbl.fold (fun k v acc -> (k,v) :: acc) tbl []
+let of_list l = List.fold_left (fun tbl (k, v) -> Hashtbl.add tbl k v; tbl) (Hashtbl.create 0) l;;
 let find_default default tbl k = try find tbl k with Not_found -> default
 let uncurry_find tbl k1 k2 = find (find tbl k1) k2
 (* makes a new table with all the keys of t1 and t2, with potential
@@ -122,6 +127,19 @@ let zip t1 t2 dv1 dv2 =
     iter (fun k v -> replace newtbl k (find_default dv1 t1 k, v)) t2;
     newtbl
 let inplace_key tbl k fn default = replace tbl k $ fn (find_default default tbl k);;
+let find_extrema k_or_v order tbl =
+    (* let conv = match k_or_v with | `key -> fst | `value -> snd in *) (* too restrictive, type-wise *)
+    let conv = k_or_v in
+    let (<|>) = match order with | `min -> (<) | `max -> (>) in
+    Hashtbl.fold (curry (fun keyval acc ->
+        match acc with
+        | Some(kv) -> if (conv keyval) <|> (conv kv) then Some(keyval) else acc
+        | None -> Some(keyval)
+    )) tbl None;;
+let extrema_by_value order tbl = find_extrema snd order tbl
+let min_by_value tbl = extrema_by_value `min tbl
+let max_by_value tbl = extrema_by_value `max tbl
+let keys tbl = fst $. List.unzip $. list_of $ tbl;;
 end;;
 
 module ExtendSet = functor (SetModule : Set.S) ->
@@ -165,45 +183,3 @@ let a = SS.of_list ["a";"b";"c";"d"];;
 let b = SS.map (fun e -> "prefix_" ^ e) a;;
 let c = SS.map_multi (fun e -> [e^"0";e^"1";e^"2"]) b;;
 *)
-
-(**
-Contains the accumulator module and associated types.
- *)
-module Accumulator=
-struct
-
-module type Compare=
-  sig
-    type t
-    val compare: t * t -> bool (**Whatever values are given by this, it is correct to assume that it will require the first argument to be  more exactly what predicate you are testing.*)
-  end;;
-module type Accum= (** The signature of the accumulator class*)
-  sig
-    type elem
-    type acc
-    val accumulate:elem->unit
-    val empty:elem->acc
-  end;;
-
-module Make (E1:Compare)=(** A module that implements accumulator for the type (E1)*)
-  struct
-    type elem=E1.t
-    type acc=Non of elem|None
-    let accumulate (a:elem) (ac:acc)=
-      match ac with 
-	Non (b)->
-	if (E1.compare (a, b)) then
-	  Non (b)
-	else
-	  Non (a)
-      |None->
-	Non (a)
-
-    let empty ()=
-      None
-  end;;
-      
-					    
-    
-end;;
-
