@@ -29,6 +29,7 @@ let (@=) x a = inplace ((swapargs (@)) a) x;;
 let identity x = x;;
 let compose f g x = f (g x);;
 let ($) a b = a b;;
+let ($.) = compose;;
 let (!!) a = a ();;
 let uncurry f (x,y) = f x y;;
 
@@ -114,6 +115,7 @@ let map fn tbl = fold (fun k v acc -> uncurry (add acc) (fn k v); acc) tbl (Hash
 let exists fn tbl = fold (fun k v acc -> if (fn k v) then true else acc) tbl false
 let contains_key key = exists (fun k v -> k = key)
 let list_of tbl = Hashtbl.fold (fun k v acc -> (k,v) :: acc) tbl []
+let of_list l = List.fold_left (fun tbl (k, v) -> Hashtbl.add tbl k v; tbl) (Hashtbl.create 0) l;;
 let find_default default tbl k = try find tbl k with Not_found -> default
 let uncurry_find tbl k1 k2 = find (find tbl k1) k2
 (* makes a new table with all the keys of t1 and t2, with potential
@@ -124,13 +126,19 @@ let zip t1 t2 dv1 dv2 =
     iter (fun k v -> replace newtbl k (find_default dv1 t1 k, v)) t2;
     newtbl
 let inplace_key tbl k fn default = replace tbl k $ fn (find_default default tbl k);;
-let max (tbl:(string,int)Hashtbl.t)=
-    let pair = ref ("",-1000) in 
-    Hashtbl.iter (fun x y->
-        match !pair with 
-        (_,c)->if c<y then 
-            pair:=(x,y)) tbl;;
-    
+let min_by_value tbl =
+    Hashtbl.fold (fun key value acc ->
+        match acc with
+        | Some(k, v) -> if v > value then Some(key, value) else acc
+        | None -> Some(key, value)
+    ) tbl None;;
+let max_by_value tbl =
+    Hashtbl.fold (fun key value acc ->
+        match acc with
+        | Some(k, v) -> if v < value then Some(key, value) else acc
+        | None -> Some(key, value)
+    ) tbl None;;
+let keys tbl = fst $. List.unzip $. list_of $ tbl;;
 end;;
 
 module ExtendSet = functor (SetModule : Set.S) ->
