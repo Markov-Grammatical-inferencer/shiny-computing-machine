@@ -32,6 +32,7 @@ let ($) a b = a b;;
 let ($.) = compose;;
 let (!!) a = a ();;
 let uncurry f (x,y) = f x y;;
+let curry f x y = f (x,y);;
 
 let string_map f str =
     let arr = Array.create (String.length str) (f 'a') in
@@ -126,14 +127,18 @@ let zip t1 t2 dv1 dv2 =
     iter (fun k v -> replace newtbl k (find_default dv1 t1 k, v)) t2;
     newtbl
 let inplace_key tbl k fn default = replace tbl k $ fn (find_default default tbl k);;
-let extrema_by_value (<|>) tbl =
-    Hashtbl.fold (fun key value acc ->
+let find_extrema k_or_v order tbl =
+    (* let conv = match k_or_v with | `key -> fst | `value -> snd in *) (* too restrictive, type-wise *)
+    let conv = k_or_v in
+    let (<|>) = match order with | `min -> (<) | `max -> (>) in
+    Hashtbl.fold (curry (fun keyval acc ->
         match acc with
-        | Some(k, v) -> if value <|> v then Some(key, value) else acc
-        | None -> Some(key, value)
-    ) tbl None;;
-let min_by_value tbl = extrema_by_value (<) tbl
-let max_by_value tbl = extrema_by_value (>) tbl
+        | Some(kv) -> if (conv keyval) <|> (conv kv) then Some(keyval) else acc
+        | None -> Some(keyval)
+    )) tbl None;;
+let extrema_by_value order tbl = find_extrema snd order tbl
+let min_by_value tbl = extrema_by_value `min tbl
+let max_by_value tbl = extrema_by_value `max tbl
 let keys tbl = fst $. List.unzip $. list_of $ tbl;;
 end;;
 
