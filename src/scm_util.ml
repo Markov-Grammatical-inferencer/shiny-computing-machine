@@ -126,18 +126,14 @@ let zip t1 t2 dv1 dv2 =
     iter (fun k v -> replace newtbl k (find_default dv1 t1 k, v)) t2;
     newtbl
 let inplace_key tbl k fn default = replace tbl k $ fn (find_default default tbl k);;
-let min_by_value tbl =
+let extrema_by_value (<|>) tbl =
     Hashtbl.fold (fun key value acc ->
         match acc with
-        | Some(k, v) -> if v > value then Some(key, value) else acc
+        | Some(k, v) -> if value <|> v then Some(key, value) else acc
         | None -> Some(key, value)
     ) tbl None;;
-let max_by_value tbl =
-    Hashtbl.fold (fun key value acc ->
-        match acc with
-        | Some(k, v) -> if v < value then Some(key, value) else acc
-        | None -> Some(key, value)
-    ) tbl None;;
+let min_by_value tbl = extrema_by_value (<) tbl
+let max_by_value tbl = extrema_by_value (>) tbl
 let keys tbl = fst $. List.unzip $. list_of $ tbl;;
 end;;
 
