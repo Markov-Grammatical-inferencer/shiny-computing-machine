@@ -208,6 +208,9 @@ end;;
 (*     r = random.random() *)
 (*     return r < p *)
 (*  *)
+let flipcoin p =
+    let r = Random.float 1. in
+    r < p
 (* def chooseFromDistribution( distribution ): *)
 (*     "Takes either a counter or a list of (prob, key) pairs and samples" *)
 (*     if type(distribution) == dict or type(distribution) == Counter: *)
