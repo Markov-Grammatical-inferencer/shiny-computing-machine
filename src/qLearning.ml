@@ -48,6 +48,10 @@ method getAction s =
     if flipcoin epsilon
     then Some(list_random_element legalActions) 
     else self#computeActionFromQValues s
+method update s a nextState reward = 
+    (*let topQval = neg_infinity in*)
+    let discount = gamma in
+    Hashtbl.replace qstates#table (s, a) ( (1. -. alpha) *. (self#getQValue s a +. alpha) *. (reward +. discount *. self#computeValueFromQValues(nextState)) )
 end
 end;;
 
