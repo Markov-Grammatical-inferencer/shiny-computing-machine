@@ -107,6 +107,13 @@ let extract pred lr =
     inplace (remove_first pred) lr;
     result
 let first_n n l = rev (snd $ fold_left (fun (i,a) e -> if i < n then (i+1, e::a) else (i, a)) (0,[]) l);;
+let partition_by elem lst = uncurry rev2 (snd $ fold_left
+    (fun (found, (before, after)) e ->
+        if (e = elem) then (true, (before, after))
+        else if found
+            then (true, (before, e :: after))
+            else (false, (e :: before, after))
+    ) (false, ([], [])) lst)
 end;;
 
 module Hashtbl =
