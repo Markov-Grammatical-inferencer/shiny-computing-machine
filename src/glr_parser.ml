@@ -234,6 +234,10 @@ let make_transitions_table gram =
 let all_syms_of_production (lhs, rhs) = lhs :: rhs
 let all_syms_of_grammar gram = List.fold_left (@) [] (List.map all_syms_of_production gram)
 
+(* let follow_set gram sym = *)
+    (* LRItemSet.set_closure (fun (lhs, rhs1, rhs2) -> *)
+        (* if List.contains  *)
+
 let make_action_and_goto_tables gram trans_table =
     let atbl : action_table = Hashtbl.create 0 in
     let gtbl : goto_table = Hashtbl.create 0 in
@@ -330,6 +334,7 @@ let make_parser : (elt grammar -> (t -> elt symbol tree list)) = fun gram ->
             (* | Accept(prod) -> List.push_opt (unravel_stack_to_tree (PSE((cur_state, cur_sym), prod :: cur_prods, Some(current_pse)))) result_trees *)
             | Accept(prod) -> result_trees @= (unravel_stack_to_tree (PSE((cur_state, cur_sym), prod :: cur_prods, Some(current_pse))))
             | Reject -> ()
+            (* | Reject -> result_trees @= (unravel_stack_to_tree (PSE((cur_state, cur_sym), cur_prods, Some(current_pse)))) (* for testing *) *)
         ) actions;
         (* Printf.printf "Queue size: %d\n%!" (Queue.length parse_stacks) *)
     done;

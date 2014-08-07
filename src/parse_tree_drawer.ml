@@ -66,9 +66,10 @@ show_parse_tree
 module P = Make(StringArray);;
 open P;;
 
-(* let p = make_parser simple_imperative_grammar;; *)
-let p = make_parser simple_operator_grammar;;
+let p = make_parser simple_imperative_grammar;;
+(* let p = make_parser simple_operator_grammar;; *)
 (* let thing_to_parse = simple_operator_example;; *)
+(* let thing_to_parse = simple_imperative_example;; *)
 (* let cdr_argv = Array.of_list (List.tl (Array.to_list Sys.argv));; *)
 (* let thing_to_parse = cdr_argv;; *)
 let thing_to_parse = Array.of_list (tokenize_via_whitespace (Array.get Sys.argv 1));;
