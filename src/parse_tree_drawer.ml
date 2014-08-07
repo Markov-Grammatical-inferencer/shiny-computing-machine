@@ -66,7 +66,8 @@ show_parse_tree
 module P = Make(StringArray);;
 open P;;
 
-let p = make_parser simple_imperative_grammar;;
+let p = make_parser WHICH_GRAMMAR;;
+(* let p = make_parser simple_imperative_grammar;; *)
 (* let p = make_parser simple_operator_grammar;; *)
 (* let thing_to_parse = simple_operator_example;; *)
 (* let thing_to_parse = simple_imperative_example;; *)

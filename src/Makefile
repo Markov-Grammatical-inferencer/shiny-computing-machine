@@ -7,7 +7,7 @@ GRAPHICS_DIRS=-I +lablgl -I +camlimages
 GRAPHICS_LIBS_COMPILED=lablgl.cmxa lablglut.cmxa graphics.cmxa camlimages_core.cmxa camlimages_freetype.cmxa 
 GRAPHICS_LIBS_BYTECODE=lablgl.cma lablglut.cma graphics.cma camlimages_core.cma camlimages_freetype.cma 
 
-EXECUTABLES=../SCM ../parse_tree_drawer ../set_map_multi_timing_test ../markov_generator ../markov_recognizer
+EXECUTABLES=../SCM ../parse_tree_drawer_op ../parse_tree_drawer_imp ../set_map_multi_timing_test ../markov_generator ../markov_recognizer
 
 .PHONY: all libs clean
 all: libs $(EXECUTABLES)
@@ -57,8 +57,15 @@ editor.cmx: editor.ml
 editor.cmo: editor.ml
 	ocamlc $(OCC) -I ../ocaml-curses/ curses.cma editor.ml -o editor
 
-../parse_tree_drawer: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.cmx parse_tree_drawer.ml
-	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(OCLIB) $(GRAPHICS_LIBS_COMPILED) $^ -o ../parse_tree_drawer
+parse_tree_drawer_op.ml: parse_tree_drawer.ml
+	cpp parse_tree_drawer.ml -DWHICH_GRAMMAR=simple_operator_grammar > parse_tree_drawer_op.ml
+parse_tree_drawer_imp.ml: parse_tree_drawer.ml
+	cpp parse_tree_drawer.ml -DWHICH_GRAMMAR=simple_imperative_grammar > parse_tree_drawer_imp.ml
+
+../parse_tree_drawer_op: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.cmx parse_tree_drawer_op.ml
+	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(OCLIB) $(GRAPHICS_LIBS_COMPILED) $^ -o ../parse_tree_drawer_op
+../parse_tree_drawer_imp: scm_util.cmx glr_parser.cmx font_wrapper.cmx opengl_visualization.cmx parse_tree_drawer_imp.ml
+	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(OCLIB) $(GRAPHICS_LIBS_COMPILED) $^ -o ../parse_tree_drawer_imp
 
 opengl_visualization.cmx: scm_util.cmx font_wrapper.cmx opengl_visualization.ml
 	$(OC) $(OCOPT) $(GRAPHICS_DIRS) $(GRAPHICS_LIBS_COMPILED) $^ -c
