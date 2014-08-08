@@ -2,6 +2,7 @@ open Scm_util;;
 (*
 #load "scm_util.cmo";;
 #load "str.cma";;
+#load "nums.cma";;
 #load "glr_parser.cmo";;
 #load "markov_chain_generator.cmo";;
 open Scm_util;;
@@ -11,8 +12,11 @@ let a = tokenize_characterwise $ string_of_file "pg1661_the_adventures_of_sherlo
 let b = generate_markov_counts 5 a;;
 let c = generate_randomish_string b 1000;;
 
+module M = Probability_given_model(Float_wrapper);;
+open M;;
 let d = tokenize_characterwise c;;
 p_tokens_given_model d b;;
+average_window_width d b;;
 
 Printf.printf "%s\n" c;;
 *)
@@ -121,9 +125,21 @@ let p_tokens_given_model tokens ((window, markov_table) : occurrence_data) : t =
     (snd $ List.fold_left (fun (queue, prob) token ->
         let subtbl = Hashtbl.find_default (Hashtbl.create 0) markov_table queue#get in
         let total = Hashtbl.fold (fun k v acc -> acc + v) subtbl 0 in
-        let occs = Hashtbl.find_default 0 subtbl token in (* consider 1 as the default, as in Laplace's rule of succession? *)
+        let occs = Hashtbl.find_default 1 subtbl token in (* consider 1 as the default, as in Laplace's rule of succession? *)
         (* average the probabilities instead of multiplying them, since multiplying moves them towards zero for an arbitrarily long string, even if most of them match *)
-        let newprob = prob +% ((t_of_int occs) /% (t_of_int total)) in
+        let newprob = prob *% ((t_of_int occs) /% (t_of_int $ 1+total)) in
+        Printf.printf "token: %s\tcontext: %s\toccurrences: (%d / %d)\trunning_probability %s\n%!" (escape_whitespace token) (Array.string_of (compose (pad_to_length 2) escape_whitespace) queue#get) occs total (string_of_t newprob);
+        queue#push token;
+        (queue, newprob)
+    ) (new finite_queue window "", (t_of_int 1)) tokens)
+
+let average_window_width tokens ((window, markov_table) : occurrence_data) : t =
+    (snd $ List.fold_left (fun (queue, prob) token ->
+        let subtbl = Hashtbl.find_default (Hashtbl.create 0) markov_table queue#get in
+        let total = Hashtbl.fold (fun k v acc -> acc + v) subtbl 0 in
+        let occs = Hashtbl.find_default 1 subtbl token in (* consider 1 as the default, as in Laplace's rule of succession? *)
+        (* average the probabilities instead of multiplying them, since multiplying moves them towards zero for an arbitrarily long string, even if most of them match *)
+        let newprob = prob +% ((t_of_int occs) /% (t_of_int $ 1+total)) in
         Printf.printf "token: %s\tcontext: %s\toccurrences: (%d / %d)\trunning_probability %s\n%!" (escape_whitespace token) (Array.string_of (compose (pad_to_length 2) escape_whitespace) queue#get) occs total (string_of_t newprob);
         queue#push token;
         (queue, newprob)
